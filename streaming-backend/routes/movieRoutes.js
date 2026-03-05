@@ -1,26 +1,27 @@
-const express = require("express");
-const router = express.Router();
-const multer = require("multer");
+const express=require("express");
+const router=express.Router();
 
-const movieController = require("../controllers/movieController");
+const multer=require("multer");
+const upload=multer({dest:"uploads/"});
 
-const upload = multer({ dest: "uploads/" });
+const{
+addMovie,
+getMovieById,
+getAllMovies,
+uploadMovie
+}=require("../controllers/movieController");
 
-/*MOVIES */
+router.post("/add",addMovie);
+router.get("/",getAllMovies);
+router.get("/:id",getMovieById);
 
-router.post("/add", movieController.addMovie);
-router.get("/", movieController.getAllMovies);
-router.get("/:id", movieController.getMovieById);
-/*UPLOAD MOVIE*/
-
-router.post(
-  "/upload",
-  upload.fields([
-    { name: "poster", maxCount: 1 },
-    { name: "banner", maxCount: 1 },
-    { name: "video", maxCount: 1 }
-  ]),
-  movieController.uploadMovie
+router.post("/upload",
+upload.fields([
+{name:"poster",maxCount:1},
+{name:"banner",maxCount:1},
+{name:"video",maxCount:1}
+]),
+uploadMovie
 );
 
-module.exports = router;
+module.exports=router;
