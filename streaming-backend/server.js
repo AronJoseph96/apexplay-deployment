@@ -21,7 +21,7 @@ connectDB().then(() => {
   createAdmin();
 });
 
-app.use("/users", require("./routes/userRoutes"));
+app.use("/users",require("./routes/userRoutes"));
 app.use("/languages", require("./routes/languageRoutes"));
 app.use("/auth", require("./routes/authRoutes"));
 app.use("/movies", require("./routes/movieRoutes"));
