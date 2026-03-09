@@ -18,7 +18,7 @@ exports.signup = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: "user"
+      role: "USER"
     });
 
     res.status(201).json({ message: "Signup successful", user: newUser });
