@@ -23,6 +23,45 @@ exports.makeEmployee = async (req, res) => {
   }
 };
 
+
+// ─── DELETE USER ───────────────────────────────────────────
+exports.deleteUser = async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: "User deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ─── DEMOTE EMPLOYEE → USER ────────────────────────────────
+exports.demoteEmployee = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    user.role     = "USER";
+    user.language = null;
+    await user.save();
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ─── UPDATE EMPLOYEE LANGUAGE ──────────────────────────────
+exports.updateEmployeeLanguage = async (req, res) => {
+  try {
+    const { language } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    user.language = language;
+    await user.save();
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // ─── COLLECTIONS ──────────────────────────────────────────
 
 // GET /users/:id/collections

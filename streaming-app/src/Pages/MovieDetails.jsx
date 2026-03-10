@@ -1,157 +1,108 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import CollectionModal from "../Components/CollectionModal";
 
-function MovieDetails() {
-  const { id }     = useParams();
-  const navigate   = useNavigate();
+const API = "http://localhost:5000";
+
+export default function MovieDetails() {
+  const { id }   = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [movie,           setMovie]           = useState(null);
   const [collectionMovie, setCollectionMovie] = useState(null);
 
   useEffect(() => {
-    fetch(`http://localhost:5000/movies/${id}`)
+    fetch(`${API}/movies/${id}`)
       .then(r => r.json())
       .then(data => setMovie(data))
-      .catch(err => console.error(err));
+      .catch(console.error);
   }, [id]);
 
   if (!movie) {
     return (
-      <div style={{ paddingTop: 100, textAlign: "center", background: "var(--bg-base)", minHeight: "100vh" }}>
-        <div className="spinner-border text-danger" />
-      </div>
+      <>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        <div style={{ height:"100vh", background:"var(--bg-base)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <div style={{ width:40, height:40, border:"3px solid var(--border)", borderTop:"3px solid #e50914", borderRadius:"50%", animation:"spin .8s linear infinite" }} />
+        </div>
+      </>
     );
   }
 
   return (
-    <div style={{ background: "var(--bg-base)", minHeight: "100vh", color: "var(--text-primary)" }}>
+    <>
+      <style>{css}</style>
 
-      {/* ── HERO BANNER ── */}
-      <div style={{
-        height: "88vh", position: "relative", overflow: "hidden",
-        backgroundImage: `url(${movie.banner || movie.poster})`,
-        backgroundSize: "cover", backgroundPosition: "center top"
-      }}>
-        {/* left-to-right gradient */}
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 55%, transparent 100%)"
-        }} />
-        {/* bottom fade into page bg */}
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "linear-gradient(to top, var(--bg-base) 0%, transparent 35%)"
-        }} />
+      {/* ══ HERO BANNER ══ */}
+      <div className="sd-hero" style={{ backgroundImage:`url(${movie.banner || movie.poster})` }}>
+        <div className="sd-gradient" />
 
-        {/* Back button */}
-        <button
-          onClick={() => navigate(-1)}
-          style={{
-            position: "absolute", top: 90, left: 24,
-            background: "rgba(0,0,0,0.5)", color: "#fff",
-            border: "1px solid rgba(255,255,255,0.2)", borderRadius: 8,
-            padding: "6px 14px", cursor: "pointer",
-            fontFamily: "Outfit", fontSize: 14, backdropFilter: "blur(6px)"
-          }}
-        >
-          ← Back
+        {/* Back */}
+        <button className="sd-back" onClick={() => navigate(-1)}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
         </button>
 
-        {/* Hero content */}
-        <div style={{
-          position: "absolute", bottom: "12%", left: "4%", maxWidth: 560
-        }}>
-          {/* Category badge */}
-          <div style={{
-            display: "inline-block", background: "var(--accent)", color: "#fff",
-            borderRadius: 6, padding: "2px 12px",
-            fontSize: 12, fontWeight: 700, fontFamily: "Outfit", marginBottom: 12
-          }}>
-            {movie.category?.toUpperCase() || "MOVIE"}
+        {/* Content */}
+        <div className="sd-hero-content">
+          <div className="sd-meta-row">
+            {movie.rating > 0 && (
+              <span className="sd-star">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="#facc15" stroke="none">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                {movie.rating}
+              </span>
+            )}
+            {[movie.releaseYear, movie.duration, movie.language, ...(movie.genres||[])].filter(Boolean).map((v,i) => (
+              <span key={i} className="sd-pill">{v}</span>
+            ))}
+            <span className="sd-badge">Movie</span>
           </div>
 
-          {/* Title */}
-          <h1 style={{
-            fontFamily: "Outfit", fontWeight: 900,
-            fontSize: "clamp(30px,5vw,64px)", lineHeight: 1.05,
-            marginBottom: 14, textTransform: "uppercase", letterSpacing: "-1px"
-          }}>
-            {movie.title}
-          </h1>
+          <h1 className="sd-title">{movie.title}</h1>
 
-          {/* Meta row */}
-          <div style={{
-            display: "flex", gap: 16, flexWrap: "wrap",
-            fontSize: 14, color: "rgba(255,255,255,0.75)", marginBottom: 14
-          }}>
-            {movie.releaseYear && <span>📅 {movie.releaseYear}</span>}
-            {movie.duration    && <span>⏱ {movie.duration}</span>}
-            {movie.rating      && <span>⭐ {movie.rating}/10</span>}
-            {movie.language    && <span>🌐 {movie.language}</span>}
-          </div>
-
-          {/* Genre pills */}
-          {movie.genres?.length > 0 && (
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 18 }}>
-              {movie.genres.map(g => (
-                <span key={g} style={{
-                  background: "rgba(255,255,255,0.12)",
-                  color: "rgba(255,255,255,0.85)",
-                  borderRadius: 999, padding: "3px 12px",
-                  fontSize: 12, fontFamily: "Outfit"
-                }}>{g}</span>
-              ))}
-            </div>
+          {movie.description && (
+            <p className="sd-desc">{movie.description}</p>
           )}
 
-          {/* Description */}
-          <p style={{
-            color: "rgba(255,255,255,0.72)", fontSize: 15,
-            lineHeight: 1.65, marginBottom: 28, maxWidth: 480
-          }}>
-            {movie.description}
-          </p>
-
-          {/* Action buttons */}
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <button
-              onClick={() => navigate(`/watch/${movie._id}`)}
-              style={{
-                background: "#fff", color: "#000",
-                border: "none", borderRadius: 10, padding: "12px 32px",
-                fontFamily: "Outfit", fontWeight: 700, fontSize: 15, cursor: "pointer"
-              }}
-            >
-              ▶ Play
+          <div className="sd-actions">
+            <button className="sd-btn-play"
+              onClick={() => navigate(`/watch/${movie._id}`)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              Play
             </button>
 
-            <button
-              onClick={() => setCollectionMovie(movie)}
-              style={{
-                background: "rgba(255,255,255,0.15)", color: "#fff",
-                border: "1px solid rgba(255,255,255,0.30)", borderRadius: 10,
-                padding: "12px 24px", fontFamily: "Outfit", fontWeight: 600,
-                fontSize: 15, cursor: "pointer", backdropFilter: "blur(6px)"
-              }}
-            >
-              + Watchlist
+            <button className="sd-btn-icon" title="Add to Watchlist"
+              onClick={() => {
+                if (!user) { navigate("/login"); return; }
+                setCollectionMovie(movie);
+              }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── TRAILER ── */}
+      {/* ══ TRAILER ══ */}
       {movie.trailerUrl && (
-        <div className="container" style={{ paddingTop: 48, paddingBottom: 60, maxWidth: 900 }}>
-          <h4 style={{ fontFamily: "Outfit", fontWeight: 700, marginBottom: 16 }}>Trailer</h4>
-          <div style={{ borderRadius: 12, overflow: "hidden" }}>
-            <iframe
-              width="100%" height="420"
-              src={movie.trailerUrl.replace("watch?v=", "embed/")}
-              title="Trailer" allowFullScreen
-              style={{ border: "none", display: "block" }}
-            />
+        <div className="sd-body">
+          <div className="sd-trailer">
+            <h3 className="sd-section-heading">Trailer</h3>
+            <div className="sd-iframe-wrap">
+              <iframe
+                src={movie.trailerUrl.replace("watch?v=","embed/").replace("youtu.be/","www.youtube.com/embed/")}
+                title="Trailer" allowFullScreen
+                style={{ width:"100%", height:"100%", border:"none", borderRadius:12 }}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -163,8 +114,93 @@ function MovieDetails() {
           onClose={() => setCollectionMovie(null)}
         />
       )}
-    </div>
+    </>
   );
 }
 
-export default MovieDetails;
+/* ════════════════════════════════════════
+   CSS — identical to SeriesDetails
+════════════════════════════════════════ */
+const css = `
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap');
+
+.sd-hero {
+  position: relative; width: 100%; height: 88vh; min-height: 520px;
+  background-size: cover; background-position: center top;
+  font-family: 'Outfit', sans-serif; overflow: hidden;
+}
+.sd-gradient {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.50) 55%, rgba(0,0,0,0.05) 100%),
+    linear-gradient(to top,   rgba(0,0,0,0.70) 0%, transparent 40%);
+}
+.sd-back {
+  position: absolute; top: 88px; left: 32px; z-index: 20;
+  width: 42px; height: 42px; border-radius: 50%; border: none;
+  background: rgba(255,255,255,0.10); backdrop-filter: blur(10px);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.2s, transform 0.15s;
+}
+.sd-back:hover { background: rgba(255,255,255,0.20); transform: scale(1.08); }
+
+.sd-hero-content {
+  position: absolute; bottom: 10%; left: 5%; max-width: 540px; z-index: 10;
+}
+.sd-meta-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 14px;
+}
+.sd-star {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 14px; font-weight: 700; color: #facc15; font-family: 'Outfit', sans-serif;
+}
+.sd-pill {
+  font-size: 13px; color: rgba(255,255,255,0.72); font-family: 'Outfit', sans-serif;
+}
+.sd-pill + .sd-pill::before { content: ' · '; color: rgba(255,255,255,0.35); margin-right: 4px; }
+.sd-badge {
+  background: rgba(229,9,20,0.25); color: #ff6b7a;
+  border: 1px solid rgba(229,9,20,0.4); border-radius: 999px;
+  font-size: 11px; font-weight: 700; padding: 2px 10px; letter-spacing: 0.5px;
+  font-family: 'Outfit', sans-serif; text-transform: uppercase;
+}
+.sd-title {
+  font-size: clamp(40px, 6vw, 82px); font-weight: 900;
+  color: #fff; letter-spacing: -2px; line-height: 0.95;
+  margin: 0 0 16px; text-transform: uppercase; font-family: 'Outfit', sans-serif;
+}
+.sd-desc {
+  font-size: 15px; color: rgba(255,255,255,0.68); line-height: 1.7;
+  margin-bottom: 28px; font-weight: 300; font-family: 'Outfit', sans-serif;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.sd-actions { display: flex; align-items: center; gap: 12px; }
+.sd-btn-play {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: #fff; color: #000; font-family: 'Outfit', sans-serif;
+  font-size: 16px; font-weight: 700; border: none; border-radius: 8px;
+  padding: 13px 28px; cursor: pointer; transition: background 0.18s, transform 0.12s;
+}
+.sd-btn-play:hover { background: #ddd; transform: scale(1.03); }
+.sd-btn-icon {
+  width: 50px; height: 50px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.07); backdrop-filter: blur(8px);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+.sd-btn-icon:hover { border-color: #fff; background: rgba(255,255,255,0.18); transform: scale(1.08); }
+
+.sd-body {
+  background: var(--bg-base); padding: 40px 5% 80px; font-family: 'Outfit', sans-serif;
+}
+.sd-trailer { margin-top: 0; max-width: 760px; }
+.sd-section-heading {
+  font-size: 20px; font-weight: 700; color: var(--text-primary);
+  margin-bottom: 16px; letter-spacing: -0.3px;
+}
+.sd-iframe-wrap {
+  width: 100%; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--border);
+}
+`;

@@ -11,6 +11,7 @@ import AdminDashboard from "./Pages/AdminDashboard";
 import WatchMovie from "./Pages/WatchMovie";
 import Watchlist from "./Pages/Watchlist";
 import AdminUsers from "./Pages/AdminUsers";
+import EmployeeDashboard from "./Pages/Employeedashboard";
 import MovieDetails from "./Pages/MovieDetails";
 import SeriesDetails from "./Pages/SeriesDetails";
 
@@ -24,6 +25,12 @@ export function useTheme() { return useContext(ThemeContext); }
 function AdminRoute({ children }) {
   const { user } = useAuth();
   if (!user || user.role !== "ADMIN") return <Navigate to="/" />;
+  return children;
+}
+
+function EmployeeRoute({ children }) {
+  const { user } = useAuth();
+  if (!user || !["EMPLOYEE","employee"].includes(user.role)) return <Navigate to="/" />;
   return children;
 }
 
@@ -69,6 +76,9 @@ function App() {
 
           {/* SERIES */}
           <Route path="/series/:id" element={<SeriesDetails />} />
+
+          {/* EMPLOYEE */}
+          <Route path="/employee/dashboard" element={<EmployeeRoute><EmployeeDashboard /></EmployeeRoute>} />
 
           {/* ADMIN */}
           <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

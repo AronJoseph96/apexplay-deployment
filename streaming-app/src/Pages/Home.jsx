@@ -114,7 +114,7 @@ export default function Home() {
                     <img
                       src={item.poster}
                       alt={item.title}
-                      style={{ width: 150, borderRadius: 10, cursor: "pointer", display: "block" }}
+                      style={{ width: 150, height: 225, objectFit: "cover", borderRadius: 10, cursor: "pointer", display: "block" }}
                       onClick={() => navigate(
                         item.category === "Series"
                           ? `/series/${item._id}`

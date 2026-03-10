@@ -1,13 +1,17 @@
 const express = require("express");
 const router  = express.Router();
 const {
-  getUsers, makeEmployee,
+  getUsers, deleteUser,
+  makeEmployee, demoteEmployee, updateEmployeeLanguage,
   getCollections, createCollection,
   addToCollection, removeFromCollection, deleteCollection,
 } = require("../controllers/userController");
 
-router.get("/", getUsers);
-router.put("/makeEmployee/:id", makeEmployee);
+router.get   ("/",                  getUsers);
+router.delete("/:id",               deleteUser);
+router.put   ("/makeEmployee/:id",  makeEmployee);
+router.put   ("/demote/:id",        demoteEmployee);
+router.put   ("/updateLang/:id",    updateEmployeeLanguage);
 
 router.get   ("/:id/collections",                               getCollections);
 router.post  ("/:id/collections",                               createCollection);
