@@ -141,12 +141,12 @@ function Navbar() {
                         <li><Link className="dropdown-item" to="/admin/dashboard">Admin Dashboard</Link></li>
                         <li><Link className="dropdown-item" to="/admin/users">Manage Users</Link></li>
                         <li><hr className="dropdown-divider" style={{ borderColor: "var(--border)" }} /></li>
+                      </>
+                    )}
                     {(user.role === "EMPLOYEE" || user.role === "employee") && (
                       <>
                         <li><Link className="dropdown-item" to="/employee/dashboard">My Dashboard</Link></li>
                         <li><hr className="dropdown-divider" style={{ borderColor: "var(--border)" }} /></li>
-                      </>
-                    )}
                       </>
                     )}
                     <li>
