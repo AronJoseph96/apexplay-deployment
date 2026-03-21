@@ -14,6 +14,8 @@ import AdminUsers from "./Pages/AdminUsers";
 import EmployeeDashboard from "./Pages/Employeedashboard";
 import Profile from "./Pages/Profile";
 import ForgotPassword from "./Pages/ForgotPassword";
+import SearchResults from "./Pages/SearchResults";
+import Subscription from "./Pages/Subscription";
 import ProfileSelector from "./Pages/ProfileSelector";
 import MovieDetails from "./Pages/MovieDetails";
 import SeriesDetails from "./Pages/SeriesDetails";
@@ -84,6 +86,8 @@ function App() {
           <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
           <Route path="/signup" element={<GuestRoute><Signup /></GuestRoute>} />
           <Route path="/movies"    element={<Movies />} />
+          <Route path="/search"    element={<SearchResults />} />
+          <Route path="/subscription" element={<Subscription />} />
           <Route path="/series"    element={<TVSeries />} />
           <Route path="/watchlist" element={<Watchlist />} />
 

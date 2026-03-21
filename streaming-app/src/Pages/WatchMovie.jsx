@@ -39,6 +39,17 @@ export default function WatchMovie() {
       .then(({ data }) => {
         setContent(data);
 
+        // ── Subscription check ──
+        const subStatus = user?.subscription?.status;
+        const subExpiry = user?.subscription?.expiresAt;
+        const isSubscribed = subStatus === "active" && subExpiry && new Date() < new Date(subExpiry);
+        const isAdminOrEmployee = ["ADMIN","admin","EMPLOYEE","employee"].includes(user?.role);
+        if (!isSubscribed && !isAdminOrEmployee) {
+          setError("SUBSCRIPTION_REQUIRED");
+          setLoading(false);
+          return;
+        }
+
         // ── Age rating check ──
         if (activeProfile) {
           const ORDER = ["U", "U/A 7+", "U/A 13+", "U/A 16+", "R", "A"];
@@ -126,10 +137,27 @@ export default function WatchMovie() {
     </div>
   );
 
+  if (error === "SUBSCRIPTION_REQUIRED") return (
+    <div style={{ height:"100vh", background:"var(--bg-base)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:16, fontFamily:"Outfit", textAlign:"center", padding:24 }}>
+      <h2 style={{ color:"var(--text-primary)", fontWeight:900 }}>Subscription Required</h2>
+      <p style={{ color:"var(--text-muted)", fontSize:16, maxWidth:400 }}>Subscribe to ApexPlay to watch unlimited movies and series.</p>
+      <div style={{ display:"flex", gap:12, flexWrap:"wrap", justifyContent:"center" }}>
+        <button onClick={() => navigate("/subscription")} className="btn btn-danger"
+          style={{ borderRadius:10, fontWeight:700, padding:"12px 28px", fontSize:15 }}>
+          View Plans 
+        </button>
+        <button onClick={() => navigate(-1)}
+          style={{ background:"none", border:"1px solid var(--border)", color:"var(--text-muted)", borderRadius:10, padding:"12px 20px", fontFamily:"Outfit", fontWeight:600, cursor:"pointer" }}>
+           Go Back
+        </button>
+      </div>
+    </div>
+  );
+
   if (error) return (
-    <div style={{ height:"100vh", background:"#000", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", color:"#fff" }}>
-      <p>{error}</p>
-      <button onClick={() => navigate(-1)} style={{ color:"#e50914", background:"none", border:"none", cursor:"pointer" }}>← Go Back</button>
+    <div style={{ height:"100vh", background:"#000", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", color:"#fff", gap:16 }}>
+      <p style={{ fontFamily:"Outfit" }}>{error}</p>
+      <button onClick={() => navigate(-1)} style={{ color:"#e50914", background:"none", border:"none", cursor:"pointer", fontFamily:"Outfit" }}>← Go Back</button>
     </div>
   );
 

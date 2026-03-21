@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../App";
@@ -9,6 +9,11 @@ function Navbar() {
   const { isDark, toggleTheme } = useTheme();
 
   const [q, setQ] = useState("");
+  const [suggestions, setSuggestions]   = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [loadingSugg,  setLoadingSugg]  = useState(false);
+  const dropdownRef = useRef();
+  const searchTimer = useRef();
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [languages, setLanguages] = useState([]);
   const [genres, setGenres] = useState([]);
@@ -30,6 +35,31 @@ function Navbar() {
       .catch(console.error);
   }, []);
 
+  // Live search
+  useEffect(() => {
+    if (!q.trim() || q.trim().length < 2) { setSuggestions([]); setShowDropdown(false); return; }
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(async () => {
+      setLoadingSugg(true);
+      try {
+        const fuzzy = q.trim().split("").join(".*");
+        const res   = await fetch(`http://localhost:5000/movies?q=${encodeURIComponent(q.trim())}`);
+        const data  = await res.json();
+        setSuggestions(Array.isArray(data) ? data.slice(0, 6) : []);
+        setShowDropdown(true);
+      } catch { setSuggestions([]); }
+      finally { setLoadingSugg(false); }
+    }, 300);
+    return () => clearTimeout(searchTimer.current);
+  }, [q]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => { if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setShowDropdown(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   const toggleGenre = (g) =>
     setSelectedGenres((prev) =>
       prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]
@@ -47,7 +77,7 @@ function Navbar() {
     if (language) params.set("lang", language);
     if (yearFrom) params.set("yearFrom", yearFrom);
     if (yearTo) params.set("yearTo", yearTo);
-    navigate(`/movies?${params.toString()}`);
+    navigate(`/search?${params.toString()}`);
   };
 
   const onSearchSubmit = (e) => { e.preventDefault(); applyFilters(); };
@@ -82,14 +112,85 @@ function Navbar() {
             </ul>
 
             {/* SEARCH */}
-            <form className="d-flex flex-grow-1 my-2 my-lg-0 gap-2" onSubmit={onSearchSubmit}>
-              <input
-                className="form-control nav-search"
-                type="search"
-                placeholder="Search movies, series..."
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
+            <form className="d-flex flex-grow-1 my-2 my-lg-0 gap-2" onSubmit={onSearchSubmit} style={{ position:"relative", zIndex:100 }}>
+              <div ref={dropdownRef} style={{ position:"relative", flex:1 }}>
+                <input
+                  className="form-control nav-search"
+                  type="search"
+                  placeholder="Search movies, series..."
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
+                  style={{ width:"100%" }}
+                />
+                {/* LIVE DROPDOWN */}
+                {showDropdown && (q.trim().length >= 2) && (
+                  <div style={{
+                    position:"absolute", top:"calc(100% + 6px)", left:0, right:0,
+                    background:"var(--bg-surface)", border:"1px solid var(--border)",
+                    borderRadius:12, boxShadow:"0 8px 32px rgba(0,0,0,0.4)",
+                    zIndex:9999, overflow:"hidden", maxHeight:400, overflowY:"auto"
+                  }}>
+                    {loadingSugg ? (
+                      <div style={{ padding:"12px 16px", color:"var(--text-muted)", fontSize:14, textAlign:"center" }}>
+                        Searching…
+                      </div>
+                    ) : suggestions.length === 0 ? (
+                      <div style={{ padding:"12px 16px", color:"var(--text-muted)", fontSize:14, textAlign:"center" }}>
+                        No results for "{q}"
+                      </div>
+                    ) : (
+                      <>
+                        {suggestions.map(item => (
+                          <div key={item._id}
+                            onClick={() => {
+                              setShowDropdown(false);
+                              setQ("");
+                              navigate(item.category === "Series" ? `/series/${item._id}` : `/movie/${item._id}`);
+                            }}
+                            style={{
+                              display:"flex", alignItems:"center", gap:12,
+                              padding:"10px 14px", cursor:"pointer",
+                              borderBottom:"1px solid var(--border)",
+                              transition:"background 0.15s"
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = "var(--bg-elevated)"}
+                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                          >
+                            <img src={item.poster} alt={item.title}
+                              style={{ width:36, height:52, objectFit:"cover", borderRadius:6, flexShrink:0 }} />
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ fontFamily:"Outfit", fontWeight:600, fontSize:14,
+                                color:"var(--text-primary)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                                {item.title}
+                              </div>
+                              <div style={{ fontSize:12, color:"var(--text-muted)", marginTop:2 }}>
+                                {item.category} · {item.releaseYear} {item.language && `· ${item.language}`}
+                              </div>
+                            </div>
+                            <span style={{
+                              fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:999,
+                              background: item.category === "Series" ? "rgba(99,102,241,0.15)" : "rgba(229,9,20,0.12)",
+                              color: item.category === "Series" ? "#818cf8" : "var(--accent)",
+                              flexShrink:0
+                            }}>{item.category}</span>
+                          </div>
+                        ))}
+                        {/* See all results */}
+                        <div onClick={() => { setShowDropdown(false); applyFilters(); }}
+                          style={{ padding:"10px 16px", textAlign:"center", fontSize:13,
+                            fontFamily:"Outfit", fontWeight:600, color:"var(--accent)",
+                            cursor:"pointer", background:"var(--bg-elevated)" }}
+                          onMouseEnter={e => e.currentTarget.style.opacity = "0.8"}
+                          onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+                        >
+                          See all results for "{q}" →
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
               <button type="button" className="btn btn-outline-light flex-shrink-0"
                 data-bs-toggle="offcanvas" data-bs-target="#filtersOffcanvas">
                 Filters
@@ -157,15 +258,18 @@ function Navbar() {
 
                     {/* Active profile + switch */}
                     {activeProfile && <li><span className="dropdown-item disabled" style={{fontSize:12,opacity:0.6}}>Profile: {activeProfile.name}</span></li>}
-                    <li><Link className="dropdown-item" to="/profiles"> Switch Profile</Link></li>
-                    <li><Link className="dropdown-item" to="/profile"> My Account</Link></li>
+                    <li><Link className="dropdown-item" to="/profiles">🔄 Switch Profile</Link></li>
+                    <li><Link className="dropdown-item" to="/profile">👤 My Account</Link></li>
+                    <li><Link className="dropdown-item" to="/subscription">
+                      {user?.subscription?.status === "active" ? "⭐ Subscription" : "🔓 Subscribe"}
+                    </Link></li>
                     <li><hr className="dropdown-divider" style={{ borderColor: "var(--border)" }} /></li>
 
                     {/* Admin links */}
                     {isAdmin && (
                       <>
-                        <li><Link className="dropdown-item" to="/admin/dashboard"> Admin Dashboard</Link></li>
-                        <li><Link className="dropdown-item" to="/admin/users"> Manage Users</Link></li>
+                        <li><Link className="dropdown-item" to="/admin/dashboard">🎬 Admin Dashboard</Link></li>
+                        <li><Link className="dropdown-item" to="/admin/users">👥 Manage Users</Link></li>
                         <li><hr className="dropdown-divider" style={{ borderColor: "var(--border)" }} /></li>
                       </>
                     )}
@@ -173,7 +277,7 @@ function Navbar() {
                     {/* Employee link */}
                     {isEmployee && (
                       <>
-                        <li><Link className="dropdown-item" to="/employee/dashboard"> My Dashboard</Link></li>
+                        <li><Link className="dropdown-item" to="/employee/dashboard">🎬 My Dashboard</Link></li>
                         <li><hr className="dropdown-divider" style={{ borderColor: "var(--border)" }} /></li>
                       </>
                     )}

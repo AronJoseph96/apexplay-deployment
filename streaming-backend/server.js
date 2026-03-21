@@ -25,9 +25,10 @@ app.use("/languages", require("./routes/languageRoutes"));
 app.use("/auth", require("./routes/authRoutes"));
 app.use("/movies", require("./routes/movieRoutes"));
 app.use("/genres", require("./routes/genreRoutes"));
+app.use("/sections", require("./routes/sectionRoutes"));
+app.use("/subscription", require("./routes/subscriptionRoutes"));
 
 const PORT = 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-

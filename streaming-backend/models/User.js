@@ -32,6 +32,14 @@ const userSchema = new mongoose.Schema({
   },
 
   language:   { type: String, default: null },
+
+  // Subscription
+  subscription: {
+    plan:      { type: String, enum: ["none","basic","standard","premium"], default: "none" },
+    status:    { type: String, enum: ["active","expired","none"], default: "none" },
+    startDate: { type: Date, default: null },
+    expiresAt: { type: Date, default: null },
+  },
   profiles:   { type: [profileSchema], default: [] },
 
   // Password reset

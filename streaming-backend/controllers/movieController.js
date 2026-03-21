@@ -17,7 +17,11 @@ exports.getAllMovies = async (req, res) => {
     const { q, genres, lang, yearFrom, yearTo, category } = req.query;
     const filter = {};
     if (category) filter.category = category;
-    if (q)        filter.title = { $regex: q, $options: "i" };
+    if (q) {
+      // Fuzzy: each character separated by .* so 'conju' matches 'Conjuring'
+      const fuzzy = q.split("").join(".*");
+      filter.title = { $regex: fuzzy, $options: "i" };
+    }
     if (genres)   filter.genres = { $in: genres.split(",") };
     if (lang)     filter.language = { $regex: new RegExp(lang, "i") };
     if (yearFrom || yearTo) {

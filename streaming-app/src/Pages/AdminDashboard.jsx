@@ -443,11 +443,211 @@ function ManageTab({ genresList, languages }) {
   );
 }
 
+
+/* ── Tab 5: Sections ── */
+function SectionsTab() {
+  const [sections,    setSections]    = useState([]);
+  const [allMovies,   setAllMovies]   = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [editing,     setEditing]     = useState(null); // section being edited
+  const [showForm,    setShowForm]    = useState(false);
+  const [msg,         setMsg]         = useState("");
+
+  // Form state
+  const [fName,       setFName]       = useState("");
+  const [fType,       setFType]       = useState("row");
+  const [fOrder,      setFOrder]      = useState(0);
+  const [fActive,     setFActive]     = useState(true);
+  const [fMovies,     setFMovies]     = useState([]); // selected movie IDs
+  const [search,      setSearch]      = useState("");
+
+  useEffect(() => {
+    fetch("http://localhost:5000/sections/all").then(r=>r.json()).then(setSections).catch(()=>{});
+    fetch("http://localhost:5000/movies").then(r=>r.json()).then(setAllMovies).catch(()=>{});
+    setLoading(false);
+  }, []);
+
+  const openNew = () => {
+    setFName(""); setFType("row"); setFOrder(sections.length); setFActive(true); setFMovies([]);
+    setEditing(null); setShowForm(true); setMsg("");
+  };
+
+  const openEdit = (s) => {
+    setFName(s.name); setFType(s.type); setFOrder(s.order); setFActive(s.isActive);
+    setFMovies(s.movies.map(m => m._id || m));
+    setEditing(s); setShowForm(true); setMsg("");
+  };
+
+  const save = async () => {
+    if (!fName.trim()) return setMsg("Enter a section name");
+    const body = { name: fName.trim(), type: fType, order: Number(fOrder), isActive: fActive, movies: fMovies };
+    try {
+      if (editing) {
+        const res = await fetch(`http://localhost:5000/sections/${editing._id}`, {
+          method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)
+        });
+        const data = await res.json();
+        setSections(p => p.map(s => s._id === editing._id ? data : s));
+      } else {
+        const res = await fetch("http://localhost:5000/sections", {
+          method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)
+        });
+        const data = await res.json();
+        setSections(p => [...p, data]);
+      }
+      setShowForm(false); setMsg("");
+    } catch { setMsg("Failed to save"); }
+  };
+
+  const deleteSection = async (id) => {
+    if (!window.confirm("Delete this section?")) return;
+    await fetch(`http://localhost:5000/sections/${id}`, { method:"DELETE" });
+    setSections(p => p.filter(s => s._id !== id));
+  };
+
+  const toggleMovie = (id) => {
+    setFMovies(p => p.includes(id) ? p.filter(x=>x!==id) : [...p, id]);
+  };
+
+  const filteredMovies = allMovies.filter(m =>
+    m.title.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const inp = { background:"var(--bg-elevated)", color:"var(--text-primary)", border:"1px solid var(--border)", borderRadius:10, padding:"9px 14px", fontFamily:"Outfit", fontSize:14, width:"100%" };
+  const lbl = { fontSize:13, fontWeight:600, color:"var(--text-muted)", display:"block", marginBottom:4 };
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <p style={{color:"var(--text-muted)",fontSize:14,margin:0}}>
+          Manage homepage sections. Each section appears as a row on the home page.<br/>
+          <strong style={{color:"var(--text-primary)"}}>Hero section</strong> = top slideshow (max 5 movies). <strong style={{color:"var(--text-primary)"}}>Row section</strong> = horizontal scroll row.
+        </p>
+        <button onClick={openNew} className="btn btn-danger" style={{borderRadius:10,fontFamily:"Outfit",fontWeight:600,whiteSpace:"nowrap"}}>
+          + New Section
+        </button>
+      </div>
+
+      {loading ? <div className="text-center py-4"><div className="spinner-border text-danger"/></div>
+      : sections.length === 0 ? (
+        <div style={{textAlign:"center",padding:"40px 0",color:"var(--text-muted)"}}>
+          No sections yet. Create one to customise your home page.
+        </div>
+      ) : (
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {[...sections].sort((a,b)=>a.order-b.order).map(s => (
+            <div key={s._id} style={{display:"flex",alignItems:"center",gap:16,background:"var(--bg-elevated)",borderRadius:12,padding:"14px 16px",border:"1px solid var(--border)"}}>
+              {/* Order badge */}
+              <div style={{width:32,height:32,borderRadius:8,background:"var(--bg-surface)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:14,color:"var(--text-muted)",flexShrink:0}}>
+                {s.order+1}
+              </div>
+              {/* Info */}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
+                  <span style={{fontWeight:700,fontSize:15}}>{s.name}</span>
+                  <span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:999,
+                    background: s.type==="hero"?"rgba(250,204,21,0.15)":"rgba(99,102,241,0.15)",
+                    color: s.type==="hero"?"#facc15":"#818cf8"}}>
+                    {s.type === "hero" ? "🎬 Hero" : "📋 Row"}
+                  </span>
+                  {!s.isActive && <span style={{fontSize:11,color:"var(--text-muted)",background:"var(--bg-surface)",borderRadius:999,padding:"1px 8px"}}>Hidden</span>}
+                </div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
+                  {s.movies.slice(0,5).map(m => (
+                    <img key={m._id} src={m.poster} alt={m.title}
+                      style={{width:28,height:40,objectFit:"cover",borderRadius:4}} />
+                  ))}
+                  {s.movies.length > 5 && <span style={{fontSize:12,color:"var(--text-muted)",alignSelf:"center"}}>+{s.movies.length-5} more</span>}
+                  {s.movies.length === 0 && <span style={{fontSize:12,color:"var(--text-muted)"}}>No movies selected</span>}
+                </div>
+              </div>
+              {/* Actions */}
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>openEdit(s)} style={{background:"rgba(99,102,241,0.15)",color:"#818cf8",border:"none",borderRadius:8,padding:"6px 14px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"Outfit"}}>✏ Edit</button>
+                <button onClick={()=>deleteSection(s._id)} style={{background:"rgba(229,9,20,0.10)",color:"var(--accent)",border:"none",borderRadius:8,padding:"6px 14px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"Outfit"}}>🗑</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── FORM MODAL ── */}
+      {showForm && (
+        <div onClick={e=>e.target===e.currentTarget&&setShowForm(false)}
+          style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:"var(--bg-surface)",border:"1px solid var(--border)",borderRadius:18,padding:28,width:"100%",maxWidth:680,maxHeight:"90vh",overflowY:"auto",fontFamily:"Outfit"}}>
+            <h5 style={{fontWeight:800,marginBottom:20}}>{editing?"Edit Section":"New Section"}</h5>
+            {msg && <div className="alert alert-danger">{msg}</div>}
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
+              <div>
+                <label style={lbl}>Section Name</label>
+                <input style={inp} value={fName} onChange={e=>setFName(e.target.value)} placeholder='e.g. "Trending", "Horror Night"' />
+              </div>
+              <div>
+                <label style={lbl}>Type</label>
+                <select style={inp} value={fType} onChange={e=>setFType(e.target.value)}>
+                  <option value="row">📋 Row (horizontal scroll)</option>
+                  <option value="hero">🎬 Hero (top slideshow, max 5)</option>
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>Display Order (0 = first)</label>
+                <input style={inp} type="number" min={0} value={fOrder} onChange={e=>setFOrder(e.target.value)} />
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:10,paddingTop:22}}>
+                <input type="checkbox" id="fActive" checked={fActive} onChange={e=>setFActive(e.target.checked)}
+                  style={{width:16,height:16,accentColor:"var(--accent)"}} />
+                <label htmlFor="fActive" style={{fontSize:14,fontWeight:600,cursor:"pointer"}}>Show on home page</label>
+              </div>
+            </div>
+
+            {/* Movie picker */}
+            <div style={{marginBottom:16}}>
+              <label style={lbl}>
+                Select Movies / Series
+                {fType==="hero" && <span style={{color:"var(--accent)",marginLeft:6,fontSize:12}}>(max 5 for hero)</span>}
+                <span style={{color:"var(--text-muted)",marginLeft:8,fontWeight:400}}>{fMovies.length} selected</span>
+              </label>
+              <input style={{...inp,marginBottom:10}} placeholder="Search to filter..." value={search} onChange={e=>setSearch(e.target.value)} />
+              <div style={{maxHeight:240,overflowY:"auto",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))",gap:8,padding:4}}>
+                {filteredMovies.map(m => {
+                  const sel = fMovies.includes(m._id);
+                  const disabled = fType==="hero" && fMovies.length>=5 && !sel;
+                  return (
+                    <div key={m._id} onClick={()=>!disabled&&toggleMovie(m._id)}
+                      style={{cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.4:1,position:"relative",borderRadius:8,overflow:"hidden",border:`2px solid ${sel?"var(--accent)":"transparent"}`}}>
+                      <img src={m.poster} alt={m.title} style={{width:"100%",aspectRatio:"2/3",objectFit:"cover",display:"block"}} />
+                      {sel && <div style={{position:"absolute",top:4,right:4,width:20,height:20,borderRadius:"50%",background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff",fontWeight:900}}>✓</div>}
+                      <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(0,0,0,0.7)",padding:"3px 5px",fontSize:10,fontFamily:"Outfit",fontWeight:600,color:"#fff",textOverflow:"ellipsis",overflow:"hidden",whiteSpace:"nowrap"}}>
+                        {m.title}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={save} style={{flex:1,padding:"11px 0",background:"var(--accent)",color:"#fff",border:"none",borderRadius:10,fontFamily:"Outfit",fontWeight:700,cursor:"pointer"}}>
+                {editing?"Save Changes":"Create Section"}
+              </button>
+              <button onClick={()=>setShowForm(false)} style={{flex:1,padding:"11px 0",background:"var(--bg-elevated)",color:"var(--text-primary)",border:"1px solid var(--border)",borderRadius:10,fontFamily:"Outfit",fontWeight:600,cursor:"pointer"}}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Main ── */
 export default function AdminDashboard() {
   const [tab, setTab] = useState("upload-movie");
   const { genresList, languages } = useGenresLanguages();
-  const tabs = [{id:"upload-movie",label:"🎬 Upload Movie"},{id:"create-series",label:"📺 Create Series"},{id:"add-episodes",label:"➕ Add Episodes"},{id:"manage",label:"⚙ Manage"}];
+  const tabs = [{id:"upload-movie",label:"🎬 Upload Movie"},{id:"create-series",label:"📺 Create Series"},{id:"add-episodes",label:"➕ Add Episodes"},{id:"manage",label:"⚙ Manage"},{id:"sections",label:"🏠 Sections"}];
 
   return (
     <div style={{paddingTop:90,minHeight:"100vh",background:"var(--bg-base)",color:"var(--text-primary)"}}>
@@ -463,6 +663,7 @@ export default function AdminDashboard() {
           {tab==="create-series" && <CreateSeriesTab genresList={genresList} languages={languages} />}
           {tab==="add-episodes"  && <AddEpisodesTab />}
           {tab==="manage"        && <ManageTab genresList={genresList} languages={languages} />}
+          {tab==="sections"      && <SectionsTab />}
         </div>
       </div>
     </div>
