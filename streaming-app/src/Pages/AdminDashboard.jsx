@@ -30,7 +30,7 @@ function GenrePills({ list, selected, onToggle }) {
 
 /* ── Tab 1: Upload Movie ── */
 function UploadMovieTab({ genresList, languages }) {
-  const blank = { title:"",description:"",releaseYear:"",duration:"",rating:"",ageRating:"U",language:"",category:"Movie" };
+  const blank = { title:"",description:"",releaseYear:"",duration:"",rating:"",ageRating:"U",language:"",category:"Movie",trailerUrl:"" };
   const [form,F]           = useState(blank);
   const [genres,G]         = useState([]);
   const [poster,setPoster] = useState(null);
@@ -40,19 +40,23 @@ function UploadMovieTab({ genresList, languages }) {
   const [bPrev,setBPrev]   = useState(null);
   const [loading,setL]     = useState(false);
   const [msg,setMsg]       = useState("");
+  const [progress,setProgress] = useState(0);
 
   const toggle = g => G(p => p.includes(g) ? p.filter(x=>x!==g) : [...p,g]);
 
   const submit = async e => {
-    e.preventDefault(); setL(true); setMsg("");
+    e.preventDefault(); setL(true); setMsg(""); setProgress(0);
     const fd = new FormData();
-    Object.keys(form).forEach(k=>fd.append(k,form[k]));
+    Object.keys(form).forEach(k=>{ if(k!=="trailerUrl") fd.append(k,form[k]); });
     fd.append("genres",JSON.stringify(genres));
     fd.append("poster",poster); fd.append("banner",banner); fd.append("video",video);
+    if(form.trailerUrl) fd.append("trailerUrl",form.trailerUrl);
     try {
-      await axios.post(`${API}/movies/upload/movie`,fd);
-      setMsg("✓ Uploaded!"); F(blank); G([]); setPoster(null); setBanner(null); setVideo(null); setPPrev(null); setBPrev(null);
-    } catch(err){ setMsg("✗ "+(err.response?.data?.error||"Failed")); }
+      await axios.post(`${API}/movies/upload/movie`,fd,{
+        onUploadProgress: e => setProgress(Math.round((e.loaded/e.total)*100))
+      });
+      setMsg("✓ Uploaded!"); setProgress(0); F(blank); G([]); setPoster(null); setBanner(null); setVideo(null); setPPrev(null); setBPrev(null);
+    } catch(err){ setMsg("✗ "+(err.response?.data?.error||"Failed")); setProgress(0); }
     finally { setL(false); }
   };
 
@@ -63,7 +67,7 @@ function UploadMovieTab({ genresList, languages }) {
         <div className="col-md-6"><input required placeholder="Title *" className="form-control" value={form.title} onChange={e=>F({...form,title:e.target.value})} /></div>
         <div className="col-md-3"><input type="number" placeholder="Year" min="1900" max="2030" className="form-control" value={form.releaseYear} onChange={e=>F({...form,releaseYear:e.target.value})} /></div>
         <div className="col-md-3"><input type="number" step="0.1" placeholder="Rating" min="0" max="10" className="form-control" value={form.rating} onChange={e=>F({...form,rating:e.target.value})} /></div>
-        <div className="col-md-3"><select className="form-select" value={form.ageRating||"U"} onChange={e=>F({...form,ageRating:e.target.value})}><option value="U">U</option><option value="U/A 7+">U/A 7+</option><option value="U/A 13+">U/A 13+</option><option value="U/A 16+">U/A 16+</option><option value="A">A (Adult)</option></select></div>
+        <div className="col-md-3"><select className="form-select" value={form.ageRating||"U"} onChange={e=>F({...form,ageRating:e.target.value})}><option value="U">U</option><option value="U/A 7+">U/A 7+</option><option value="U/A 13+">U/A 13+</option><option value="U/A 16+">U/A 16+</option><option value="R">R (Restricted)</option><option value="A">A (Adult)</option></select></div>
         <div className="col-12"><textarea rows="3" placeholder="Description" className="form-control" value={form.description} onChange={e=>F({...form,description:e.target.value})} /></div>
         <div className="col-md-4"><input placeholder='Duration e.g. "2h 15m"' className="form-control" value={form.duration} onChange={e=>F({...form,duration:e.target.value})} /></div>
         <div className="col-md-4">
@@ -78,6 +82,7 @@ function UploadMovieTab({ genresList, languages }) {
             <option value="Series">Series</option>
           </select>
         </div>
+        <div className="col-12"><input placeholder="Trailer URL (optional — YouTube embed or direct URL)" className="form-control" value={form.trailerUrl||""} onChange={e=>F({...form,trailerUrl:e.target.value})} /></div>
       </div>
       <div className="mt-3 mb-3"><label className="form-label fw-semibold">Genres</label><GenrePills list={genresList} selected={genres} onToggle={toggle} /></div>
       <div className="row g-3">
@@ -94,6 +99,16 @@ function UploadMovieTab({ genresList, languages }) {
           {video && <small style={{color:"var(--text-muted)"}}>{video.name}</small>}
         </div>
       </div>
+      {loading && progress > 0 && (
+        <div style={{marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:4,fontSize:13,color:"var(--text-muted)"}}>
+            <span>Uploading to Cloudinary…</span><span>{progress}%</span>
+          </div>
+          <div style={{width:"100%",height:6,background:"var(--bg-elevated)",borderRadius:999}}>
+            <div style={{height:"100%",width:`${progress}%`,background:"var(--accent)",borderRadius:999,transition:"width 0.3s"}} />
+          </div>
+        </div>
+      )}
       <button className="btn btn-danger w-100 mt-4" disabled={loading} style={{borderRadius:12,fontFamily:"Outfit",fontWeight:600}}>{loading?"Uploading…":"🎬 Upload Movie"}</button>
     </form>
   );
@@ -110,19 +125,22 @@ function CreateSeriesTab({ genresList, languages }) {
   const [bPrev,setBPrev]   = useState(null);
   const [loading,setL]     = useState(false);
   const [msg,setMsg]       = useState("");
+  const [progress,setProgress] = useState(0);
 
   const toggle = g => G(p => p.includes(g) ? p.filter(x=>x!==g) : [...p,g]);
 
   const submit = async e => {
-    e.preventDefault(); setL(true); setMsg("");
+    e.preventDefault(); setL(true); setMsg(""); setProgress(0);
     const fd = new FormData();
     Object.keys(form).forEach(k=>fd.append(k,form[k]));
     fd.append("genres",JSON.stringify(genres));
     fd.append("poster",poster); fd.append("banner",banner);
     try {
-      await axios.post(`${API}/movies/upload/series`,fd);
-      setMsg("✓ Series created!"); F(blank); G([]); setPoster(null); setBanner(null); setPPrev(null); setBPrev(null);
-    } catch(err){ setMsg("✗ "+(err.response?.data?.error||"Failed")); }
+      await axios.post(`${API}/movies/upload/series`,fd,{
+        onUploadProgress: e => setProgress(Math.round((e.loaded/e.total)*100))
+      });
+      setMsg("✓ Series created!"); setProgress(0); F(blank); G([]); setPoster(null); setBanner(null); setPPrev(null); setBPrev(null);
+    } catch(err){ setMsg("✗ "+(err.response?.data?.error||"Failed")); setProgress(0); }
     finally { setL(false); }
   };
 
@@ -133,7 +151,7 @@ function CreateSeriesTab({ genresList, languages }) {
         <div className="col-md-6"><input required placeholder="Series Title *" className="form-control" value={form.title} onChange={e=>F({...form,title:e.target.value})} /></div>
         <div className="col-md-3"><input type="number" placeholder="Year" min="1900" max="2030" className="form-control" value={form.releaseYear} onChange={e=>F({...form,releaseYear:e.target.value})} /></div>
         <div className="col-md-3"><input type="number" step="0.1" placeholder="Rating" className="form-control" value={form.rating} onChange={e=>F({...form,rating:e.target.value})} /></div>
-        <div className="col-md-3"><select className="form-select" value={form.ageRating||"U"} onChange={e=>F({...form,ageRating:e.target.value})}><option value="U">U</option><option value="U/A 7+">U/A 7+</option><option value="U/A 13+">U/A 13+</option><option value="U/A 16+">U/A 16+</option><option value="A">A (Adult)</option></select></div>
+        <div className="col-md-3"><select className="form-select" value={form.ageRating||"U"} onChange={e=>F({...form,ageRating:e.target.value})}><option value="U">U</option><option value="U/A 7+">U/A 7+</option><option value="U/A 13+">U/A 13+</option><option value="U/A 16+">U/A 16+</option><option value="R">R (Restricted)</option><option value="A">A (Adult)</option></select></div>
         <div className="col-12"><textarea rows="3" placeholder="Description" className="form-control" value={form.description} onChange={e=>F({...form,description:e.target.value})} /></div>
         <div className="col-md-6">
           <select className="form-select" value={form.language} onChange={e=>F({...form,language:e.target.value})}>
@@ -153,6 +171,16 @@ function CreateSeriesTab({ genresList, languages }) {
           </div>
         ))}
       </div>
+      {loading && progress > 0 && (
+        <div style={{marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:4,fontSize:13,color:"var(--text-muted)"}}>
+            <span>Uploading to Cloudinary…</span><span>{progress}%</span>
+          </div>
+          <div style={{width:"100%",height:6,background:"var(--bg-elevated)",borderRadius:999}}>
+            <div style={{height:"100%",width:`${progress}%`,background:"var(--accent)",borderRadius:999,transition:"width 0.3s"}} />
+          </div>
+        </div>
+      )}
       <button className="btn btn-danger w-100 mt-4" disabled={loading} style={{borderRadius:12,fontFamily:"Outfit",fontWeight:600}}>{loading?"Uploading…":"📺 Create Series"}</button>
     </form>
   );
@@ -170,6 +198,7 @@ function AddEpisodesTab() {
   const [thumb,setThumb]                 = useState(null);
   const [uploading,setUploading]         = useState(false);
   const [msg,setMsg]                     = useState("");
+  const [epProgress,setEpProgress]       = useState(0);
 
   useEffect(()=>{ fetch(`${API}/movies?category=Series`).then(r=>r.json()).then(setSeriesList); },[]);
 
@@ -194,11 +223,14 @@ function AddEpisodesTab() {
     Object.keys(epForm).forEach(k=>fd.append(k,epForm[k]));
     fd.append("video",video); if(thumb) fd.append("thumbnail",thumb);
     try {
-      await axios.post(`${API}/movies/${selected._id}/seasons/${sNum}/episodes`,fd);
+      await axios.post(`${API}/movies/${selected._id}/seasons/${sNum}/episodes`,fd,{
+        onUploadProgress: e => setEpProgress(Math.round((e.loaded/e.total)*100))
+      });
+      setEpProgress(0);
       await refresh(selected._id);
       setEpForm({episodeNumber:"",title:"",description:"",duration:""}); setVideo(null); setThumb(null);
       setMsg("✓ Episode added");
-    } catch(e){ setMsg("✗ "+(e.response?.data?.error||"Failed")); }
+    } catch(e){ setMsg("✗ "+(e.response?.data?.error||"Failed")); setEpProgress(0); }
     finally { setUploading(false); }
   };
 
@@ -261,7 +293,7 @@ function AddEpisodesTab() {
                         <div className="col-md-6"><label className="form-label" style={{fontSize:13}}>Video *</label><input type="file" accept="video/*" className="form-control" onChange={e=>setVideo(e.target.files[0])} /></div>
                         <div className="col-md-6"><label className="form-label" style={{fontSize:13}}>Thumbnail</label><input type="file" accept="image/*" className="form-control" onChange={e=>setThumb(e.target.files[0])} /></div>
                       </div>
-                      <button className="btn btn-danger mt-3" onClick={()=>addEpisode(s.seasonNumber)} disabled={uploading} style={{borderRadius:10,fontFamily:"Outfit",fontWeight:600}}>{uploading?"Uploading…":`+ Add Episode to Season ${s.seasonNumber}`}</button>
+                      {uploading && epProgress > 0 && (<div style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--text-muted)",marginBottom:3}}><span>Uploading…</span><span>{epProgress}%</span></div><div style={{height:4,background:"var(--bg-elevated)",borderRadius:999}}><div style={{height:"100%",width:`${epProgress}%`,background:"var(--accent)",borderRadius:999,transition:"width 0.3s"}}/></div></div>)}<button className="btn btn-danger mt-3" onClick={()=>addEpisode(s.seasonNumber)} disabled={uploading} style={{borderRadius:10,fontFamily:"Outfit",fontWeight:600}}>{uploading?"Uploading…":`+ Add Episode to Season ${s.seasonNumber}`}</button>
                     </div>
                   </div>
                 )}
@@ -370,7 +402,7 @@ function ManageTab({ genresList, languages }) {
               <div className="col-md-4"><input type="number" placeholder="Year" className="form-control" value={editForm.releaseYear} onChange={e=>setEF({...editForm,releaseYear:e.target.value})} /></div>
               <div className="col-12"><textarea rows="3" placeholder="Description" className="form-control" value={editForm.description} onChange={e=>setEF({...editForm,description:e.target.value})} /></div>
               <div className="col-md-4"><input type="number" step="0.1" placeholder="Rating" className="form-control" value={editForm.rating} onChange={e=>setEF({...editForm,rating:e.target.value})} /></div>
-              <div className="col-md-4"><select className="form-select" value={editForm.ageRating||"U"} onChange={e=>setEF({...editForm,ageRating:e.target.value})}><option value="U">U</option><option value="U/A 7+">U/A 7+</option><option value="U/A 13+">U/A 13+</option><option value="U/A 16+">U/A 16+</option><option value="A">A (Adult)</option></select></div>
+              <div className="col-md-4"><select className="form-select" value={editForm.ageRating||"U"} onChange={e=>setEF({...editForm,ageRating:e.target.value})}><option value="U">U</option><option value="U/A 7+">U/A 7+</option><option value="U/A 13+">U/A 13+</option><option value="U/A 16+">U/A 16+</option><option value="R">R (Restricted)</option><option value="A">A (Adult)</option></select></div>
               <div className="col-md-4"><input placeholder="Duration" className="form-control" value={editForm.duration} onChange={e=>setEF({...editForm,duration:e.target.value})} /></div>
               <div className="col-md-4">
                 <select className="form-select" value={editForm.language} onChange={e=>setEF({...editForm,language:e.target.value})}>
@@ -378,7 +410,7 @@ function ManageTab({ genresList, languages }) {
                   {languages.map(l=><option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
-              {editTarget.category==="Series" && <div className="col-12"><input placeholder="Trailer URL" className="form-control" value={editForm.trailerUrl} onChange={e=>setEF({...editForm,trailerUrl:e.target.value})} /></div>}
+              <div className="col-12"><input placeholder="Trailer URL (optional — YouTube embed or direct URL)" className="form-control" value={editForm.trailerUrl||""} onChange={e=>setEF({...editForm,trailerUrl:e.target.value})} /></div>
             </div>
             <div className="mt-3 mb-3">
               <label className="form-label fw-semibold">Genres</label>

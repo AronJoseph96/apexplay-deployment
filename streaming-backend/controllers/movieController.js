@@ -2,6 +2,10 @@ const Movie      = require("../models/Movie");
 const cloudinary = require("../config/cloudinary");
 const fs         = require("fs");
 
+
+// Sanitize title for Cloudinary folder name
+const slugify = (str) => (str || "unknown").replace(/[^a-zA-Z0-9 _-]/g, "").trim().replace(/\s+/g, "_") || "unknown";
+
 const uploadToCloudinary = async (filePath, options = {}) => {
   const result = await cloudinary.uploader.upload(filePath, options);
   try { fs.unlinkSync(filePath); } catch (_) {}
@@ -38,17 +42,22 @@ exports.uploadMovie = async (req, res) => {
     if (!req.files?.poster || !req.files?.banner || !req.files?.video)
       return res.status(400).json({ error: "poster, banner and video are required" });
 
-    const { title, description, releaseYear, duration, rating, ageRating, genres, language, category } = req.body;
+    let { title, description, releaseYear, duration, rating, ageRating, genres, language, category, trailerUrl } = req.body;
+    if (Array.isArray(trailerUrl)) trailerUrl = trailerUrl[0];
+    const lang   = slugify(language || "Unknown");
+    const name   = slugify(title);
+    const folder = `Movies/${lang}/${name}`;
     const [posterUp, bannerUp, videoUp] = await Promise.all([
-      uploadToCloudinary(req.files.poster[0].path, { folder: "posters" }),
-      uploadToCloudinary(req.files.banner[0].path, { folder: "banners" }),
-      uploadToCloudinary(req.files.video[0].path,  { resource_type: "video", folder: "movies" }),
+      uploadToCloudinary(req.files.poster[0].path, { folder: `${folder}` }),
+      uploadToCloudinary(req.files.banner[0].path, { folder: `${folder}` }),
+      uploadToCloudinary(req.files.video[0].path,  { resource_type: "video", folder: `${folder}` }),
     ]);
 
     const movie = await Movie.create({
       title, description,
       poster: posterUp.secure_url, banner: bannerUp.secure_url,
-      videoUrl: videoUp.secure_url, trailerUrl: videoUp.secure_url,
+      videoUrl: videoUp.secure_url,
+      trailerUrl: trailerUrl || "",
       releaseYear: Number(releaseYear), duration, rating: Number(rating),
       ageRating: ageRating || "U",
       genres: genres ? JSON.parse(genres) : [],
@@ -64,9 +73,12 @@ exports.uploadSeries = async (req, res) => {
       return res.status(400).json({ error: "poster and banner are required" });
 
     const { title, description, releaseYear, rating, ageRating, genres, language, trailerUrl } = req.body;
+    const lang   = slugify(language || "Unknown");
+    const name   = slugify(title);
+    const folder = `Series/${lang}/${name}`;
     const [posterUp, bannerUp] = await Promise.all([
-      uploadToCloudinary(req.files.poster[0].path, { folder: "posters" }),
-      uploadToCloudinary(req.files.banner[0].path, { folder: "banners" }),
+      uploadToCloudinary(req.files.poster[0].path, { folder: `${folder}` }),
+      uploadToCloudinary(req.files.banner[0].path, { folder: `${folder}` }),
     ]);
 
     const series = await Movie.create({
@@ -87,7 +99,8 @@ exports.updateMovie = async (req, res) => {
     const movie = await Movie.findById(req.params.id);
     if (!movie) return res.status(404).json({ error: "Not found" });
 
-    const { title, description, releaseYear, duration, rating, ageRating, genres, language, trailerUrl } = req.body;
+    let { title, description, releaseYear, duration, rating, ageRating, genres, language, trailerUrl } = req.body;
+    if (Array.isArray(trailerUrl)) trailerUrl = trailerUrl[0];
     if (title)       movie.title       = title;
     if (description !== undefined) movie.description = description;
     if (releaseYear) movie.releaseYear = Number(releaseYear);
@@ -98,18 +111,24 @@ exports.updateMovie = async (req, res) => {
     if (ageRating)   movie.ageRating   = ageRating;
     if (genres)      movie.genres      = JSON.parse(genres);
 
-    if (req.files?.poster) {
-      const up = await uploadToCloudinary(req.files.poster[0].path, { folder: "posters" });
-      movie.poster = up.secure_url;
-    }
-    if (req.files?.banner) {
-      const up = await uploadToCloudinary(req.files.banner[0].path, { folder: "banners" });
-      movie.banner = up.secure_url;
-    }
-    if (req.files?.video) {
-      const up = await uploadToCloudinary(req.files.video[0].path, { resource_type: "video", folder: "movies" });
-      movie.videoUrl = up.secure_url;
-      movie.trailerUrl = up.secure_url;
+    if (req.files?.poster || req.files?.banner || req.files?.video) {
+      const cat    = movie.category === "Series" ? "Series" : "Movies";
+      const lang   = slugify(movie.language || "Unknown");
+      const name   = slugify(movie.title);
+      const folder = `${cat}/${lang}/${name}`;
+      if (req.files?.poster) {
+        const up = await uploadToCloudinary(req.files.poster[0].path, { folder });
+        movie.poster = up.secure_url;
+      }
+      if (req.files?.banner) {
+        const up = await uploadToCloudinary(req.files.banner[0].path, { folder });
+        movie.banner = up.secure_url;
+      }
+      if (req.files?.video) {
+        const up = await uploadToCloudinary(req.files.video[0].path, { resource_type: "video", folder });
+        movie.videoUrl = up.secure_url;
+        // Don't override trailerUrl — keep them separate
+      }
     }
 
     await movie.save();
@@ -157,10 +176,13 @@ exports.addEpisode = async (req, res) => {
     if (!req.files?.video) return res.status(400).json({ error: "Video file required" });
 
     const { episodeNumber, title, description, duration } = req.body;
-    const videoUp = await uploadToCloudinary(req.files.video[0].path, { resource_type: "video", folder: "episodes" });
+    const lang          = slugify(movie.language || "Unknown");
+    const seriesName    = slugify(movie.title);
+    const seasonFolder  = `Series/${lang}/${seriesName}/Season_${req.params.seasonNumber}`;
+    const videoUp = await uploadToCloudinary(req.files.video[0].path, { resource_type: "video", folder: seasonFolder });
     let thumbnailUrl = "";
     if (req.files?.thumbnail) {
-      const thumbUp = await uploadToCloudinary(req.files.thumbnail[0].path, { folder: "thumbnails" });
+      const thumbUp = await uploadToCloudinary(req.files.thumbnail[0].path, { folder: seasonFolder });
       thumbnailUrl = thumbUp.secure_url;
     }
     season.episodes.push({ episodeNumber: Number(episodeNumber), title, description, duration, videoUrl: videoUp.secure_url, thumbnail: thumbnailUrl });

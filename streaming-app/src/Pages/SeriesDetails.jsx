@@ -5,10 +5,26 @@ import CollectionModal from "../Components/CollectionModal";
 
 const API = "http://localhost:5000";
 
+const toEmbed = (url) => {
+  if (!url) return "";
+  // Already embed
+  if (url.includes("/embed/")) return url;
+  // youtu.be short link
+  const short = url.match(/youtu\.be\/([\w-]+)/);
+  if (short) return `https://www.youtube.com/embed/${short[1]}`;
+  // watch?v=
+  const watch = url.match(/[?&]v=([\w-]+)/);
+  if (watch) return `https://www.youtube.com/embed/${watch[1]}`;
+  // Direct URL (Cloudinary etc)
+  return url;
+};
+
+
 export default function SeriesDetails() {
   const { id }      = useParams();
   const navigate    = useNavigate();
-  const { user }    = useAuth();
+  const { user, activeProfile } = useAuth();
+  const [blocked, setBlocked] = useState(false);
 
   const [series,          setSeries]          = useState(null);
   const [activeSeason,    setActiveSeason]    = useState(0);
@@ -17,9 +33,27 @@ export default function SeriesDetails() {
   useEffect(() => {
     fetch(`${API}/movies/${id}`)
       .then(r => r.json())
-      .then(data => { setSeries(data); setActiveSeason(0); })
+      .then(data => {
+        setSeries(data);
+        setActiveSeason(0);
+        if (activeProfile) {
+          const ORDER = ["U", "U/A 7+", "U/A 13+", "U/A 16+", "R", "A"];
+          const contentIdx = ORDER.indexOf(data.ageRating || "U");
+          const profileIdx = ORDER.indexOf(activeProfile.ageRating || "A");
+          if (contentIdx > profileIdx) setBlocked(true);
+        }
+      })
       .catch(console.error);
   }, [id]);
+
+  if (blocked) return (
+    <div style={{ minHeight:"100vh", background:"var(--bg-base)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:16, fontFamily:"Outfit" }}>
+      <div style={{ fontSize:64 }}>🔒</div>
+      <h2 style={{ color:"var(--text-primary)" }}>Content Restricted</h2>
+      <p style={{ color:"var(--text-muted)" }}>This content is not available for the <strong>{activeProfile?.name}</strong> profile.</p>
+      <button onClick={() => navigate(-1)} className="btn btn-danger">← Go Back</button>
+    </div>
+  );
 
   if (!series) {
     return (
@@ -158,7 +192,7 @@ export default function SeriesDetails() {
             <h3 className="sd-section-heading">Trailer</h3>
             <div className="sd-iframe-wrap">
               <iframe
-                src={series.trailerUrl}
+                src={toEmbed(series.trailerUrl)}
                 title="Trailer"
                 allowFullScreen
                 style={{ width:"100%", height:"100%", border:"none", borderRadius:12 }}

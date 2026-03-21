@@ -137,13 +137,17 @@ export default function WatchMovie() {
     <div style={{ background:"#000", minHeight:"100vh", display:"flex", flexDirection:"column" }}>
 
       {/* TOP BAR */}
-      <div style={{ display:"flex", alignItems:"center", gap:16, padding:"12px 20px", background:"rgba(0,0,0,0.8)", position:"sticky", top:0, zIndex:50 }}>
-        <button onClick={() => navigate(-1)} style={{ background:"none", border:"none", color:"#fff", cursor:"pointer", display:"flex", alignItems:"center", gap:6, fontFamily:"Outfit", fontSize:14 }}>
+      <div style={{ display:"flex", alignItems:"center", gap:16, padding:"14px 28px", background:"rgba(0,0,0,0.92)", backdropFilter:"blur(16px)", borderBottom:"1px solid rgba(255,255,255,0.06)", position:"sticky", top:0, zIndex:50 }}>
+        <button onClick={() => navigate(-1)} style={{
+          width:42, height:42, borderRadius:"50%", border:"none",
+          background:"rgba(255,255,255,0.10)", backdropFilter:"blur(10px)",
+          color:"#fff", display:"flex", alignItems:"center", justifyContent:"center",
+          cursor:"pointer", flexShrink:0, transition:"background 0.2s"
+        }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-          Back
         </button>
-        <span style={{ color:"#fff", fontFamily:"Outfit", fontWeight:700, fontSize:16, flex:1, textAlign:"center" }}>{title}</span>
-        <div style={{ width:60 }} />
+        <span style={{ color:"#fff", fontFamily:"Outfit", fontWeight:700, fontSize:16, flex:1, textAlign:"center", letterSpacing:"-0.3px" }}>{title}</span>
+        <div style={{ width:42 }} />
       </div>
 
       {/* VIDEO PLAYER */}
@@ -322,10 +326,11 @@ function CustomPlayer({ videoRef, src }) {
     <div ref={containerRef}
       style={{ position:"relative", background:"#000", flex:1, display:"flex", alignItems:"center", justifyContent:"center", cursor: showControls ? "default" : "none" }}
       onMouseMove={resetHide}
-      onMouseLeave={() => playing && setShowControls(false)}
-      onClick={togglePlay}>
+      onMouseLeave={() => playing && setShowControls(false)}>
 
       <video
+        onClick={togglePlay}
+        style={{ cursor: "pointer" }}
         ref={videoRef}
         src={src}
         style={{ width:"100%", maxHeight:"calc(100vh - 56px)", display:"block" }}

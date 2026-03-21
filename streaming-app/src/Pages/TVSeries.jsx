@@ -1,8 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import CollectionModal from "../Components/CollectionModal";
 
+
+// Filter movies by active profile's age rating
+const filterByAge = (movies, profile) => {
+  if (!profile) return movies;
+  const ORDER = ["U", "U/A 7+", "U/A 13+", "U/A 16+", "R", "A"];
+  const maxIdx = ORDER.indexOf(profile.ageRating);
+  if (maxIdx === -1) return movies; // unknown rating = show all
+  return movies.filter(m => {
+    const idx = ORDER.indexOf(m.ageRating || "U");
+    return idx <= maxIdx;
+  });
+};
 function TVSeries() {
+  const { activeProfile } = useAuth();
   const [series,          setSeries]          = useState([]);
   const [loading,         setLoading]         = useState(true);
   const [collectionMovie, setCollectionMovie] = useState(null);
@@ -12,7 +26,7 @@ function TVSeries() {
   useEffect(() => {
     fetch("http://localhost:5000/movies?category=Series")
       .then(r => r.json())
-      .then(data => setSeries(data))
+      .then(data => setSeries(filterByAge(data, activeProfile)))
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }, []);

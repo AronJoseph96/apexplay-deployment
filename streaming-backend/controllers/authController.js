@@ -53,14 +53,14 @@ exports.signup = async (req, res) => {
             <p style="margin:6px 0 0;font-size:14px;opacity:0.85">Your streaming journey begins</p>
           </div>
           <div style="padding:36px">
-            <h2 style="margin:0 0 10px">Welcome, ${name}! </h2>
+            <h2 style="margin:0 0 10px">Welcome, ${name}! 👋</h2>
             <p style="color:#aaa;margin:0 0 24px;line-height:1.7">
               Your account has been created successfully. You now have access to thousands of movies and TV shows on ApexPlay.
             </p>
             <div style="background:#1a1a1a;border-radius:12px;padding:20px;margin-bottom:24px">
               <p style="margin:0 0 8px;font-weight:700;font-size:15px">Your profile details:</p>
-              <p style="margin:0;color:#aaa;font-size:14px"> Username: <strong style="color:#fff">${name}</strong></p>
-              <p style="margin:4px 0 0;color:#aaa;font-size:14px"> Profile rating: <strong style="color:#e50914">${ageRating}</strong></p>
+              <p style="margin:0;color:#aaa;font-size:14px">👤 Username: <strong style="color:#fff">${name}</strong></p>
+              <p style="margin:4px 0 0;color:#aaa;font-size:14px">🎭 Profile rating: <strong style="color:#e50914">${ageRating}</strong></p>
             </div>
             <p style="color:#aaa;font-size:13px;margin:0 0 20px;line-height:1.6">
               You can add more profiles (for family members) from the profile selector after logging in.
@@ -68,7 +68,7 @@ exports.signup = async (req, res) => {
             <div style="text-align:center">
               <a href="http://localhost:3000/login"
                 style="background:#e50914;color:#fff;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:700;font-size:15px;display:inline-block">
-                Start Watching 
+                Start Watching →
               </a>
             </div>
           </div>
@@ -181,12 +181,17 @@ exports.resetPassword = async (req, res) => {
 // ── VERIFY PROFILE PIN ────────────────────────────────────
 exports.verifyPin = async (req, res) => {
   try {
-    const { userId, profileId, pin } = req.body;
+    const { userId, profileId, pin, type } = req.body;
+    // type: "entry" (default) = check profile.pin
+    //       "edit"            = check profile.editPin
     const user    = await User.findById(userId);
     if (!user) return res.status(404).json({ valid: false });
     const profile = user.profiles.id(profileId);
-    if (!profile || !profile.pin) return res.json({ valid: true });
-    const ok = await bcrypt.compare(pin, profile.pin);
+    if (!profile) return res.status(404).json({ valid: false });
+
+    const pinToCheck = type === "edit" ? profile.editPin : profile.pin;
+    if (!pinToCheck) return res.json({ valid: true }); // no PIN set = open
+    const ok = await bcrypt.compare(pin, pinToCheck);
     res.json({ valid: ok });
   } catch (err) {
     res.status(500).json({ valid: false, error: err.message });

@@ -16,8 +16,10 @@ export default function EmployeeDashboard() {
   const [genresList,     setGenresList]     = useState([]);
   const [selectedGenres, setSelectedGenres] = useState([]);
 
+  const [uploadProgress, setUploadProgress] = useState(0);
+
   // ── movie form ──
-  const [movieForm, setMovieForm] = useState({ title:"", description:"", releaseYear:"", duration:"", rating:"", ageRating:"U", category:"Movie" });
+  const [movieForm, setMovieForm] = useState({ title:"", description:"", releaseYear:"", duration:"", rating:"", ageRating:"U", category:"Movie", trailerUrl:"" });
   const [moviePoster,  setMoviePoster]  = useState(null);
   const [movieBanner,  setMovieBanner]  = useState(null);
   const [movieVideo,   setMovieVideo]   = useState(null);
@@ -85,12 +87,15 @@ export default function EmployeeDashboard() {
     data.append("banner",    movieBanner);
     data.append("video",     movieVideo);
     try {
-      await axios.post(`${API}/movies/upload/movie`, data);
+      await axios.post(`${API}/movies/upload/movie`, data, {
+        onUploadProgress: e => setUploadProgress(Math.round((e.loaded/e.total)*100))
+      });
+      setUploadProgress(0);
       alert("Movie uploaded!");
-      setMovieForm({ title:"", description:"", releaseYear:"", duration:"", rating:"", ageRating:"U", category:"Movie" });
+      setMovieForm({ title:"", description:"", releaseYear:"", duration:"", rating:"", ageRating:"U", category:"Movie", trailerUrl:"" });
       setSelectedGenres([]); setMoviePoster(null); setMovieBanner(null); setMovieVideo(null);
       setPosterPrev(null); setBannerPrev(null);
-    } catch { alert("Upload failed"); }
+    } catch { setUploadProgress(0); alert("Upload failed"); }
   };
 
   // ══ CREATE SERIES ══
@@ -104,12 +109,15 @@ export default function EmployeeDashboard() {
     data.append("poster",   seriesPoster);
     data.append("banner",   seriesBanner);
     try {
-      await axios.post(`${API}/movies/upload/series`, data);
+      await axios.post(`${API}/movies/upload/series`, data, {
+        onUploadProgress: e => setUploadProgress(Math.round((e.loaded/e.total)*100))
+      });
+      setUploadProgress(0);
       alert("Series created!");
       setSeriesForm({ title:"", description:"", releaseYear:"", duration:"", rating:"", ageRating:"U" });
       setSelectedGenres([]); setSeriesPoster(null); setSeriesBanner(null);
       setSeriesPosterPrev(null); setSeriesBannerPrev(null);
-    } catch { alert("Series creation failed"); }
+    } catch { setUploadProgress(0); alert("Series creation failed"); }
   };
 
   // ══ ADD SEASON ══
@@ -129,11 +137,14 @@ export default function EmployeeDashboard() {
     Object.entries(epForm).forEach(([k,v]) => data.append(k,v));
     if (epVideo) data.append("video", epVideo);
     try {
-      await axios.post(`${API}/movies/${selectedSeries}/seasons/${selectedSeason}/episodes`, data);
+      await axios.post(`${API}/movies/${selectedSeries}/seasons/${selectedSeason}/episodes`, data, {
+        onUploadProgress: e => setUploadProgress(Math.round((e.loaded/e.total)*100))
+      });
+      setUploadProgress(0);
       alert("Episode added!");
       setEpForm({ title:"", episodeNumber:"", duration:"" }); setEpVideo(null);
       fetchSeriesDetail(selectedSeries);
-    } catch { alert("Failed to add episode"); }
+    } catch { setUploadProgress(0); alert("Failed to add episode"); }
   };
 
   // ══ DELETE EPISODE ══
@@ -239,9 +250,16 @@ export default function EmployeeDashboard() {
                   <option value="U/A 7+">U/A 7+</option>
                   <option value="U/A 13+">U/A 13+</option>
                   <option value="U/A 16+">U/A 16+</option>
+                  <option value="R">R — Restricted</option>
                   <option value="A">A — Adults Only</option>
                 </select>
               </div>
+            </div>
+
+            {/* Trailer URL */}
+            <div style={{ marginBottom:14 }}>
+              <label style={labelStyle}>Trailer URL (optional)</label>
+              <input style={inputStyle} placeholder="YouTube embed or direct URL" value={movieForm.trailerUrl||""} onChange={e=>setMovieForm({...movieForm,trailerUrl:e.target.value})} />
             </div>
 
             {/* Language — LOCKED */}
@@ -285,6 +303,16 @@ export default function EmployeeDashboard() {
                 {movieVideo && <p style={{ fontSize:12, color:"var(--text-muted)", marginTop:6 }}>✓ {movieVideo.name}</p>}
               </div>
             </div>
+            {uploadProgress > 0 && (
+              <div style={{marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"var(--text-muted)",marginBottom:4}}>
+                  <span>Uploading to Cloudinary…</span><span>{uploadProgress}%</span>
+                </div>
+                <div style={{width:"100%",height:6,background:"var(--bg-elevated)",borderRadius:999}}>
+                  <div style={{height:"100%",width:`${uploadProgress}%`,background:"var(--accent)",borderRadius:999,transition:"width 0.3s"}}/>
+                </div>
+              </div>
+            )}
             <button type="submit" style={{ width:"100%", padding:"13px 0", background:"var(--accent)", color:"#fff", border:"none", borderRadius:12, fontFamily:"Outfit", fontWeight:800, fontSize:16, cursor:"pointer" }}>
               Upload Movie
             </button>
@@ -320,6 +348,7 @@ export default function EmployeeDashboard() {
                   <option value="U/A 7+">U/A 7+</option>
                   <option value="U/A 13+">U/A 13+</option>
                   <option value="U/A 16+">U/A 16+</option>
+                  <option value="R">R — Restricted</option>
                   <option value="A">A — Adults Only</option>
                 </select>
               </div>
@@ -353,6 +382,16 @@ export default function EmployeeDashboard() {
                 {seriesBannerPrev && <img src={seriesBannerPrev} alt="" style={{ width:"100%", borderRadius:8, marginTop:8, aspectRatio:"16/9", objectFit:"cover" }} />}
               </div>
             </div>
+            {uploadProgress > 0 && (
+              <div style={{marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"var(--text-muted)",marginBottom:4}}>
+                  <span>Uploading to Cloudinary…</span><span>{uploadProgress}%</span>
+                </div>
+                <div style={{width:"100%",height:6,background:"var(--bg-elevated)",borderRadius:999}}>
+                  <div style={{height:"100%",width:`${uploadProgress}%`,background:"var(--accent)",borderRadius:999,transition:"width 0.3s"}}/>
+                </div>
+              </div>
+            )}
             <button type="submit" style={{ width:"100%", padding:"13px 0", background:"var(--accent)", color:"#fff", border:"none", borderRadius:12, fontFamily:"Outfit", fontWeight:800, fontSize:16, cursor:"pointer" }}>
               Create Series
             </button>
@@ -420,6 +459,12 @@ export default function EmployeeDashboard() {
                             <input style={inputStyle} placeholder="Duration" value={epForm.duration} onChange={e=>setEpForm({...epForm,duration:e.target.value})} />
                           </div>
                           <input type="file" accept="video/*" style={{...inputStyle, marginBottom:10}} onChange={e=>setEpVideo(e.target.files[0])} />
+                          {uploadProgress > 0 && (
+                            <div style={{marginBottom:8}}>
+                              <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--text-muted)",marginBottom:3}}><span>Uploading…</span><span>{uploadProgress}%</span></div>
+                              <div style={{height:4,background:"var(--bg-elevated)",borderRadius:999}}><div style={{height:"100%",width:`${uploadProgress}%`,background:"var(--accent)",borderRadius:999,transition:"width 0.3s"}}/></div>
+                            </div>
+                          )}
                           <button onClick={handleAddEpisode} style={{ width:"100%", padding:"11px 0", background:"var(--accent)", color:"#fff", border:"none", borderRadius:10, fontFamily:"Outfit", fontWeight:700, cursor:"pointer" }}>
                             + Add Episode
                           </button>

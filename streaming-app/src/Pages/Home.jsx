@@ -1,11 +1,26 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 
 const API = "http://localhost:5000";
 
+// Filter movies by active profile's age rating
+const filterByAge = (movies, profile) => {
+  if (!profile) return movies;
+  const ORDER = ["U", "U/A 7+", "U/A 13+", "U/A 16+", "R", "A"];
+  const maxIdx = ORDER.indexOf(profile.ageRating);
+  if (maxIdx === -1) return movies; // unknown rating = show all
+  return movies.filter(m => {
+    const idx = ORDER.indexOf(m.ageRating || "U");
+    return idx <= maxIdx;
+  });
+};
+
+
 export default function Home() {
   const navigate = useNavigate();
+  const { activeProfile } = useAuth();
 
   const [movies,         setMovies]         = useState([]);
   const [seriesList,     setSeriesList]      = useState([]);
@@ -19,8 +34,9 @@ export default function Home() {
   useEffect(() => {
     axios.get("http://localhost:5000/movies?category=Movie")
       .then(res => {
-        setMovies(res.data);
-        setHeroItems(res.data.slice(0, 5));
+        const filtered = filterByAge(res.data, activeProfile);
+        setMovies(filtered);
+        setHeroItems(filtered.slice(0, 5));
       })
       .catch(console.error);
   }, []);
@@ -28,7 +44,7 @@ export default function Home() {
   /* ── fetch series only ── */
   useEffect(() => {
     axios.get(`${API}/movies?category=Series`)
-      .then(res => setSeriesList(res.data))
+      .then(res => setSeriesList(filterByAge(res.data, activeProfile)))
       .catch(console.error);
   }, []);
 

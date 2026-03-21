@@ -8,7 +8,8 @@ const collectionSchema = new mongoose.Schema({
 const profileSchema = new mongoose.Schema({
   name:          { type: String, required: true },
   avatar:        { type: String, default: "/avatars/1.jpg" },
-  pin:           { type: String, default: null },      // 4-digit PIN (hashed)
+  pin:           { type: String, default: null },      // 4-digit PIN to ENTER profile (hashed)
+  editPin:       { type: String, default: null },      // 4-digit PIN to EDIT/DELETE profile (hashed)
   ageRating:     { type: String, default: "A",
                    enum: ["U", "U/A 7+", "U/A 13+", "U/A 16+", "R", "A"] },
   isKids:        { type: Boolean, default: false },

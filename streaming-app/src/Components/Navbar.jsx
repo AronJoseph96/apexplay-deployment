@@ -225,11 +225,11 @@ function Navbar() {
           <div className="row g-2 mb-4">
             <div className="col">
               <input type="number" className="form-control" placeholder="Year from"
-                value={yearFrom} onChange={(e) => setYearFrom(e.target.value)} />
+                min="1900" max="2026" value={yearFrom} onChange={(e) => setYearFrom(e.target.value)} />
             </div>
             <div className="col">
               <input type="number" className="form-control" placeholder="Year to"
-                value={yearTo} onChange={(e) => setYearTo(e.target.value)} />
+                min="1900" max="2026" value={yearTo} onChange={(e) => setYearTo(e.target.value)} />
             </div>
           </div>
 

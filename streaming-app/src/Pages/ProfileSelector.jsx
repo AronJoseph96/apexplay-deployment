@@ -29,6 +29,7 @@ export default function ProfileSelector() {
   const [formAgeRating, setFormAgeRating] = useState("A");
   const [formIsKids,    setFormIsKids]    = useState(false);
   const [formPin,       setFormPin]       = useState("");
+  const [formEditPin,   setFormEditPin]   = useState("");
   const [formScreenTime,setFormScreenTime]= useState(60);
   const [formLoading,   setFormLoading]   = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
@@ -135,7 +136,7 @@ export default function ProfileSelector() {
     try {
       const res  = await fetch(`${API}/auth/verify-pin`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user._id, profileId: actionTarget.profile._id, pin: entered })
+        body: JSON.stringify({ userId: user._id, profileId: actionTarget.profile._id, pin: entered, type: "edit" })
       });
       const data = await res.json();
       if (data.valid) {
@@ -153,16 +154,16 @@ export default function ProfileSelector() {
   const openAdd = () => {
     setFormName(""); setFormAvatar("/avatars/1.jpg");
     setFormAgeRating("A"); setFormIsKids(false);
-    setFormPin(""); setFormScreenTime(60);
+    setFormPin(""); setFormEditPin(""); setFormScreenTime(60);
     setEditTarget(null); setShowAdd(true);
   };
 
-  const needsPin = (p) => p.pin || p.isKids;
+  const needsPin = (p) => p.editPin || p.isKids;
 
   const openEdit = (p) => {
-    if (p.isKids && !p.pin) {
-      alert("This is a kids profile. Please set a PIN on it first to protect it from edits.");
-      doEdit(p); // allow edit so parent can add a PIN
+    if (p.isKids && !p.editPin) {
+      alert("This kids profile has no Edit Lock PIN. Set one to protect it from edits.");
+      doEdit(p);
       return;
     }
     if (needsPin(p)) {
@@ -178,7 +179,7 @@ export default function ProfileSelector() {
   const doEdit = (p) => {
     setFormName(p.name); setFormAvatar(p.avatar);
     setFormAgeRating(p.ageRating); setFormIsKids(p.isKids);
-    setFormPin(""); setFormScreenTime(p.screenTimeLimit || 60);
+    setFormPin(""); setFormEditPin(""); setFormScreenTime(p.screenTimeLimit || 60);
     setEditTarget(p); setShowAdd(true);
     setActionTarget(null);
   };
@@ -193,7 +194,8 @@ export default function ProfileSelector() {
         isKids: formIsKids,
         screenTimeLimit: formIsKids ? formScreenTime : null,
       };
-      if (formPin) body.pin = formPin;
+      if (formPin)     body.pin     = formPin;
+      if (formEditPin) body.editPin = formEditPin;
 
       const url    = editTarget
         ? `${API}/users/${user._id}/profiles/${editTarget._id}`
@@ -212,8 +214,8 @@ export default function ProfileSelector() {
   };
 
   const deleteProfile = (p) => {
-    if (p.isKids && !p.pin) {
-      if (window.confirm(`Delete kids profile "${p.name}"? (No PIN was set)`)) doDelete(p);
+    if (p.isKids && !p.editPin) {
+      if (window.confirm(`Delete kids profile "${p.name}"? (No Edit Lock PIN was set)`)) doDelete(p);
       return;
     }
     if (needsPin(p)) {
@@ -404,11 +406,26 @@ export default function ProfileSelector() {
               </div>
             )}
 
-            {/* PIN */}
-            <div style={{ marginBottom:20 }}>
-              <label style={lbl}>4-Digit PIN {formIsKids ? "(recommended — prevents kids from editing)" : editTarget ? "(leave blank to keep current)" : "(optional)"}</label>
+            {/* Entry PIN */}
+            <div style={{ marginBottom:12 }}>
+              <label style={lbl}>Entry PIN (optional) — required to switch to this profile</label>
               <input style={inp} type="password" inputMode="numeric" maxLength={4}
-                placeholder="••••" value={formPin} onChange={e=>setFormPin(e.target.value.replace(/\D/g,"").slice(0,4))} />
+                placeholder="Leave blank for no entry PIN" value={formPin}
+                onChange={e=>setFormPin(e.target.value.replace(/[^0-9]/g,"").slice(0,4))} />
+            </div>
+
+            {/* Edit Lock PIN */}
+            <div style={{ marginBottom:20 }}>
+              <label style={lbl}>
+                🔒 Edit Lock PIN {editTarget ? "(leave blank to keep current)" : "(optional)"}
+                {formIsKids && <span style={{color:"var(--accent)",marginLeft:4}}>— recommended for kids</span>}
+              </label>
+              <input style={inp} type="password" inputMode="numeric" maxLength={4}
+                placeholder="Leave blank for no edit lock" value={formEditPin||""}
+                onChange={e=>setFormEditPin(e.target.value.replace(/[^0-9]/g,"").slice(0,4))} />
+              <p style={{fontSize:11,color:"var(--text-muted)",margin:"4px 0 0"}}>
+                If set, this PIN is required to edit or delete this profile.
+              </p>
             </div>
 
             <div style={{ display:"flex", gap:8 }}>
@@ -449,7 +466,7 @@ export default function ProfileSelector() {
             {actionPinErr && <p style={{ color:"#f87171", fontSize:13, marginBottom:8 }}>{actionPinErr}</p>}
             <button onClick={() => setActionTarget(null)}
               style={{ background:"none", border:"none", color:"var(--text-muted)", fontFamily:"Outfit", fontSize:13, cursor:"pointer" }}>
-               Cancel
+              ← Cancel
             </button>
           </div>
         </div>

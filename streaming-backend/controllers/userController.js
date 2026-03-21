@@ -70,15 +70,16 @@ exports.getProfiles = async (req, res) => {
 
 exports.createProfile = async (req, res) => {
   try {
-    const { name, avatar, pin, ageRating, isKids, screenTimeLimit } = req.body;
+    const { name, avatar, pin, editPin, ageRating, isKids, screenTimeLimit } = req.body;
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ error: "Not found" });
     if (user.profiles.length >= 5)
       return res.status(400).json({ error: "Maximum 5 profiles allowed" });
-    const hashedPin = pin ? await bcrypt.hash(pin, 10) : null;
+    const hashedPin    = pin     ? await bcrypt.hash(pin, 10)     : null;
+    const hashedEditPin = editPin ? await bcrypt.hash(editPin, 10) : null;
     user.profiles.push({
       name, avatar: avatar || "/avatars/1.jpg",
-      pin: hashedPin, ageRating: ageRating || "A",
+      pin: hashedPin, editPin: hashedEditPin, ageRating: ageRating || "A",
       isKids: !!isKids,
       screenTimeLimit: isKids ? (screenTimeLimit || 60) : null,
       collections: []
@@ -90,7 +91,7 @@ exports.createProfile = async (req, res) => {
 
 exports.updateProfileById = async (req, res) => {
   try {
-    const { name, avatar, pin, ageRating, isKids, screenTimeLimit } = req.body;
+    const { name, avatar, pin, editPin, ageRating, isKids, screenTimeLimit } = req.body;
     const user = await User.findById(req.params.id);
     const profile = user.profiles.id(req.params.profileId);
     if (!profile) return res.status(404).json({ error: "Profile not found" });
@@ -99,7 +100,8 @@ exports.updateProfileById = async (req, res) => {
     if (ageRating) profile.ageRating = ageRating;
     if (typeof isKids === "boolean") profile.isKids = isKids;
     if (screenTimeLimit !== undefined) profile.screenTimeLimit = screenTimeLimit;
-    if (pin) profile.pin = await bcrypt.hash(pin, 10);
+    if (pin !== undefined) profile.pin = pin ? await bcrypt.hash(pin, 10) : null;
+    if (editPin !== undefined) profile.editPin = editPin ? await bcrypt.hash(editPin, 10) : null;
     await user.save();
     res.json(user.profiles);
   } catch (err) { res.status(500).json({ error: err.message }); }
