@@ -15,6 +15,7 @@ export default function AdminUsers() {
   const [users,         setUsers]         = useState([]);
   const [languages,     setLanguages]     = useState([]);
   const [loading,       setLoading]       = useState(true);
+  const [search,        setSearch]        = useState("");
 
   // Promote modal
   const [promoteTarget, setPromoteTarget] = useState(null);
@@ -41,8 +42,13 @@ export default function AdminUsers() {
 
   useEffect(() => { fetchAll(); }, []);
 
-  const normalUsers = users.filter(u => isUser(u.role));
-  const employees   = users.filter(u => isEmployee(u.role));
+  const normalUsers = users.filter(u => isUser(u.role) &&
+    (u.name?.toLowerCase().includes(search.toLowerCase()) ||
+     u.email?.toLowerCase().includes(search.toLowerCase())));
+  const employees = users.filter(u => isEmployee(u.role) &&
+    (u.name?.toLowerCase().includes(search.toLowerCase()) ||
+     u.email?.toLowerCase().includes(search.toLowerCase()) ||
+     u.language?.toLowerCase().includes(search.toLowerCase())));
 
   const handleDelete = async (id, name) => {
     if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
@@ -90,7 +96,7 @@ export default function AdminUsers() {
         {/* TABS */}
         <div style={{ display:"flex", gap:4, borderBottom:"1px solid var(--border)", marginBottom:28 }}>
           {[["users", `👤 Users (${normalUsers.length})`], ["employees", `🎬 Employees (${employees.length})`]].map(([key, label]) => (
-            <button key={key} onClick={() => setTab(key)} style={{
+            <button key={key} onClick={() => { setTab(key); setSearch(""); }} style={{
               background:"none", border:"none",
               borderBottom:`2px solid ${tab===key ? "var(--accent)" : "transparent"}`,
               color: tab===key ? "var(--text-primary)" : "var(--text-muted)",
@@ -98,6 +104,28 @@ export default function AdminUsers() {
               padding:"10px 22px", cursor:"pointer", marginBottom:-1, transition:"all 0.15s"
             }}>{label}</button>
           ))}
+        </div>
+
+        {/* SEARCH BAR */}
+        <div style={{ marginBottom:20, position:"relative" }}>
+          <input
+            className="form-control"
+            placeholder={tab === "users" ? "Search users by name or email…" : "Search employees by name, email or language…"}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ paddingLeft:40 }}
+          />
+          <svg style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", opacity:0.4 }}
+            width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          {search && (
+            <button onClick={() => setSearch("")}
+              style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)",
+                background:"none", border:"none", color:"var(--text-muted)", cursor:"pointer", fontSize:16 }}>
+              ✕
+            </button>
+          )}
         </div>
 
         {loading ? (

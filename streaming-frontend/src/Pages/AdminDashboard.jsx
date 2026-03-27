@@ -59,7 +59,7 @@ function UploadMovieTab({ genresList, languages }) {
       await axios.post(`${API}/movies/upload/movie`,fd,{
         onUploadProgress: e => setProgress(Math.round((e.loaded/e.total)*100))
       });
-      setMsg("✓ Uploaded!"); setProgress(0); F(blank); G([]); setPoster(null); setBanner(null); setVideo(null); setVideoUrl(""); setPPrev(null); setBPrev(null);
+      setMsg(" Uploaded!"); setProgress(0); F(blank); G([]); setPoster(null); setBanner(null); setVideo(null); setVideoUrl(""); setPPrev(null); setBPrev(null);
     } catch(err){ setMsg("✗ "+(err.response?.data?.error||"Failed")); setProgress(0); }
     finally { setL(false); }
   };
@@ -120,7 +120,7 @@ function UploadMovieTab({ genresList, languages }) {
           </div>
         </div>
       )}
-      <button className="btn btn-danger w-100 mt-4" disabled={loading} style={{borderRadius:12,fontFamily:"Outfit",fontWeight:600}}>{loading?"Uploading…":"🎬 Upload Movie"}</button>
+      <button className="btn btn-danger w-100 mt-4" disabled={loading} style={{borderRadius:12,fontFamily:"Outfit",fontWeight:600}}>{loading?"Uploading…":" Upload Movie"}</button>
     </form>
   );
 }
@@ -193,7 +193,7 @@ function CreateSeriesTab({ genresList, languages }) {
           </div>
         </div>
       )}
-      <button className="btn btn-danger w-100 mt-4" disabled={loading} style={{borderRadius:12,fontFamily:"Outfit",fontWeight:600}}>{loading?"Uploading…":"📺 Create Series"}</button>
+      <button className="btn btn-danger w-100 mt-4" disabled={loading} style={{borderRadius:12,fontFamily:"Outfit",fontWeight:600}}>{loading?"Uploading…":" Create Series"}</button>
     </form>
   );
 }
@@ -225,7 +225,7 @@ function AddEpisodesTab() {
 
   const addSeason = async () => {
     if (!selected) return;
-    try { await axios.post(`${API}/movies/${selected._id}/seasons`,{seasonNumber:seasonNum,title:seasonTitle}); await refresh(selected._id); setSeasonTitle(""); setMsg("✓ Season added"); }
+    try { await axios.post(`${API}/movies/${selected._id}/seasons`,{seasonNumber:seasonNum,title:seasonTitle}); await refresh(selected._id); setSeasonTitle(""); setMsg("Season added"); }
     catch(e){ setMsg("✗ "+(e.response?.data?.error||"Failed")); }
   };
 
@@ -248,7 +248,7 @@ function AddEpisodesTab() {
     try {
       await axios.patch(`${API}/movies/${selected._id}/seasons/${editEp.seasonNumber}/episodes/${editEp.ep.episodeNumber}`, fd);
       await refresh(selected._id);
-      setEditEp(null); setMsg("✓ Episode updated");
+      setEditEp(null); setMsg(" Episode updated");
     } catch(e) { setMsg("✗ "+(e.response?.data?.error||"Failed")); }
     setEditEpSaving(false);
   };
@@ -274,7 +274,7 @@ function AddEpisodesTab() {
       setEpProgress(0);
       await refresh(selected._id);
       setEpForm({episodeNumber:"",title:"",description:"",duration:""}); setVideo(null); setThumb(null); setEpVideoUrl("");
-      setMsg("✓ Episode added");
+      setMsg(" Episode added");
     } catch(e){ setMsg("✗ "+(e.response?.data?.error||"Failed")); setEpProgress(0); }
     finally { setUploading(false); }
   };
@@ -347,7 +347,7 @@ function AddEpisodesTab() {
                             <hr style={{flex:1,borderColor:"var(--border)",margin:0}}/>
                           </div>
                           <input className="form-control" style={{fontSize:13}} placeholder="Paste Cloudinary URL" value={epVideoUrl||""} onChange={e=>{setEpVideoUrl(e.target.value); if(e.target.value) setVideo(null);}} disabled={!!video} />
-                          {epVideoUrl && <small style={{color:"#4ade80"}}>✓ Using URL</small>}
+                          {epVideoUrl && <small style={{color:"#4ade80"}}> Using URL</small>}
                         </div>
                         <div className="col-md-6"><label className="form-label" style={{fontSize:13}}>Thumbnail</label><input type="file" accept="image/*" className="form-control" onChange={e=>setThumb(e.target.files[0])} /></div>
                       </div>
@@ -389,7 +389,7 @@ function AddEpisodesTab() {
             </div>
             <div style={{display:"flex",gap:8,marginTop:20}}>
               <button onClick={saveEditEp} disabled={editEpSaving} style={{flex:1,padding:"11px 0",background:"var(--accent)",color:"#fff",border:"none",borderRadius:10,fontFamily:"Outfit",fontWeight:700,cursor:"pointer"}}>
-                {editEpSaving ? "Saving…" : "💾 Save Changes"}
+                {editEpSaving ? "Saving…" : " Save Changes"}
               </button>
               <button onClick={()=>setEditEp(null)} style={{flex:1,padding:"11px 0",background:"var(--bg-elevated)",color:"var(--text-primary)",border:"1px solid var(--border)",borderRadius:10,fontFamily:"Outfit",fontWeight:600,cursor:"pointer"}}>Cancel</button>
             </div>
@@ -439,7 +439,7 @@ function ManageTab({ genresList, languages }) {
     try {
       const res = await axios.patch(`${API}/movies/${editTarget._id}`,fd);
       setItems(p=>p.map(m=>m._id===editTarget._id?res.data.movie:m));
-      setMsg("✓ Saved!"); setTimeout(()=>setEdit(null),1000);
+      setMsg(" Saved!"); setTimeout(()=>setEdit(null),1000);
     } catch(e){ setMsg("✗ "+(e.response?.data?.error||"Failed")); }
     finally { setSaving(false); }
   };
@@ -527,7 +527,7 @@ function ManageTab({ genresList, languages }) {
               </div>
             </div>
             <div style={{display:"flex",gap:10}}>
-              <button className="btn btn-danger flex-grow-1" onClick={handleSave} disabled={saving} style={{borderRadius:12,fontFamily:"Outfit",fontWeight:600}}>{saving?"Saving…":"💾 Save Changes"}</button>
+              <button className="btn btn-danger flex-grow-1" onClick={handleSave} disabled={saving} style={{borderRadius:12,fontFamily:"Outfit",fontWeight:600}}>{saving?"Saving…":" Save Changes"}</button>
               <button onClick={()=>setEdit(null)} style={{background:"var(--bg-elevated)",color:"var(--text-primary)",border:"1px solid var(--border)",borderRadius:12,padding:"8px 20px",cursor:"pointer",fontFamily:"Outfit"}}>Cancel</button>
             </div>
           </div>
@@ -741,7 +741,7 @@ function SectionsTab() {
 export default function AdminDashboard() {
   const [tab, setTab] = useState("upload-movie");
   const { genresList, languages } = useGenresLanguages();
-  const tabs = [{id:"upload-movie",label:"🎬 Upload Movie"},{id:"create-series",label:"📺 Create Series"},{id:"add-episodes",label:"➕ Add Episodes"},{id:"manage",label:"⚙ Manage"},{id:"sections",label:"🏠 Sections"}];
+  const tabs = [{id:"upload-movie",label:" Upload Movie"},{id:"create-series",label:" Create Series"},{id:"add-episodes",label:"➕ Add Episodes"},{id:"manage",label:"⚙ Manage"},{id:"sections",label:" Sections"}];
 
   return (
     <div style={{paddingTop:90,minHeight:"100vh",background:"var(--bg-base)",color:"var(--text-primary)"}}>

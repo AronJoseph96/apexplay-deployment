@@ -181,7 +181,7 @@ export default function Home() {
             <div className="container">
               <div style={{ display:"flex", alignItems:"baseline", gap:10, marginBottom:16 }}>
                 <h4 className="home-section-title" style={{ margin:0 }}>
-                  ✨ Recommended For You
+                   Recommended For You
                 </h4>
                 {recGenres.length > 0 && (
                   <span style={{ fontSize:12, color:"var(--text-muted)", fontFamily:"Outfit" }}>

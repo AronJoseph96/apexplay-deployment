@@ -338,7 +338,7 @@ export default function ProfileSelector() {
             {pinError && <p style={{ color:"#f87171", fontSize:13, marginBottom:12 }}>{pinError}</p>}
             <button onClick={() => setPinTarget(null)}
               style={{ background:"none", border:"none", color:"var(--text-muted)", fontFamily:"Outfit", fontSize:13, cursor:"pointer" }}>
-              ← Back
+               Back
             </button>
           </div>
         </div>
@@ -372,7 +372,7 @@ export default function ProfileSelector() {
             {/* Name */}
             <div style={{ marginBottom:12 }}>
               <label style={lbl}>Profile Name</label>
-              <input style={inp} value={formName} onChange={e=>setFormName(e.target.value)} placeholder="e.g. Kids, Dad, Mom" />
+              <input style={inp} value={formName} onChange={e=>setFormName(e.target.value)} placeholder="e.g. Name" />
             </div>
 
             {/* Kids toggle */}
