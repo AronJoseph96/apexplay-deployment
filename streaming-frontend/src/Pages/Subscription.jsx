@@ -95,11 +95,29 @@ export default function Subscription() {
 
   return (
     <div style={{ minHeight:"100vh", background:"var(--bg-base)", paddingTop:90, fontFamily:"Outfit, sans-serif", color:"var(--text-primary)" }}>
+      <button onClick={() => navigate(-1)} style={{
+          position:"fixed", top:88, left:32, zIndex:200,
+          width:42, height:42, borderRadius:"50%", border:"none",
+          background:"rgba(255,255,255,0.10)", backdropFilter:"blur(10px)",
+          color:"var(--text-primary)", display:"flex", alignItems:"center",
+          justifyContent:"center", cursor:"pointer",
+          transition:"background 0.2s, transform 0.15s",
+          boxShadow:"0 2px 12px rgba(0,0,0,0.2)"
+        }}
+          onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.20)"}
+          onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.10)"}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
       <div style={{ maxWidth:960, margin:"0 auto", padding:"32px 20px 80px" }}>
 
         {/* ── ALREADY SUBSCRIBED ── */}
         {isActive && step !== "success" ? (
           <div style={{ textAlign:"center", padding:"40px 0" }}>
+            <div style={{ fontSize:64, marginBottom:16 }}>🎬</div>
             <h2 style={{ fontWeight:900, fontSize:28, marginBottom:8 }}>You're all set!</h2>
             <p style={{ color:"var(--text-muted)", fontSize:16, marginBottom:24 }}>
               You have an active <strong style={{ color:"var(--accent)" }}>{sub.plan?.charAt(0).toUpperCase()+sub.plan?.slice(1)}</strong> subscription.
@@ -125,7 +143,7 @@ export default function Subscription() {
             <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap" }}>
               <button onClick={() => navigate("/")} className="btn btn-danger"
                 style={{ borderRadius:10, fontWeight:700, padding:"11px 28px" }}>
-                Start Watching 
+                Start Watching →
               </button>
               <button onClick={handleCancel}
                 style={{ background:"none", border:"1px solid var(--border)", color:"var(--text-muted)",
@@ -138,6 +156,7 @@ export default function Subscription() {
         ) : step === "success" ? (
           /* ── SUCCESS ── */
           <div style={{ textAlign:"center", padding:"60px 0" }}>
+            <div style={{ fontSize:80, marginBottom:16 }}>🎉</div>
             <h2 style={{ fontWeight:900, fontSize:32, marginBottom:8 }}>Welcome to ApexPlay!</h2>
             <p style={{ color:"var(--text-muted)", fontSize:16, marginBottom:8 }}>
               Your <strong style={{ color:"var(--accent)" }}>{plan?.name}</strong> subscription is now active.
@@ -147,7 +166,7 @@ export default function Subscription() {
             </p>
             <button onClick={() => navigate("/")} className="btn btn-danger"
               style={{ borderRadius:10, fontWeight:700, padding:"13px 36px", fontSize:16 }}>
-              Start Watching 
+              Start Watching →
             </button>
           </div>
 

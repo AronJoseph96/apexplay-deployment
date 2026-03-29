@@ -41,13 +41,15 @@ export default function EmployeeDashboard() {
   const [seriesDetail,    setSeriesDetail]     = useState(null);
   const [selectedSeason,  setSelectedSeason]  = useState("");
   const [newSeasonNum,    setNewSeasonNum]     = useState("");
-  const [epForm,          setEpForm]          = useState({ title:"", episodeNumber:"", duration:"" });
+  const [epForm,          setEpForm]          = useState({ title:"", episodeNumber:"", duration:"", description:"" });
   const [epVideo,         setEpVideo]         = useState(null);
   const [editEp,          setEditEp]          = useState(null);
   const [editEpForm,      setEditEpForm]      = useState({title:"",description:"",duration:""});
   const [editEpVideo,     setEditEpVideo]     = useState(null);
   const [editEpVideoUrl,  setEditEpVideoUrl]  = useState("");
+  const [editEpThumb,     setEditEpThumb]     = useState(null);
   const [editEpSaving,    setEditEpSaving]    = useState(false);
+  const [epThumb,         setEpThumb]         = useState(null);
 
   // ── manage ──
   const [allContent,  setAllContent]  = useState([]);
@@ -145,13 +147,14 @@ export default function EmployeeDashboard() {
     Object.entries(epForm).forEach(([k,v]) => data.append(k,v));
     if (epVideo) data.append("video", epVideo);
     if (epVideoUrl.trim()) data.append("videoUrl", epVideoUrl.trim());
+    if (epThumb) data.append("thumbnail", epThumb);
     try {
       await axios.post(`${API}/movies/${selectedSeries}/seasons/${selectedSeason}/episodes`, data, {
         onUploadProgress: e => setUploadProgress(Math.round((e.loaded/e.total)*100))
       });
       setUploadProgress(0);
       alert("Episode added!");
-      setEpForm({ title:"", episodeNumber:"", duration:"" }); setEpVideo(null); setEpVideoUrl("");
+      setEpForm({ title:"", episodeNumber:"", duration:"", description:"" }); setEpVideo(null); setEpVideoUrl(""); setEpThumb(null);
       fetchSeriesDetail(selectedSeries);
     } catch { setUploadProgress(0); alert("Failed to add episode"); }
   };
@@ -166,17 +169,18 @@ export default function EmployeeDashboard() {
   const saveEditEp = async () => {
     if (!editEp) return;
     setEditEpSaving(true);
-    const season = seriesDetail.seasons.find(s => s._id === editEp.seasonId);
+    const seasonNum = typeof editEp.seasonId === "number" ? editEp.seasonId : seriesDetail.seasons.find(s=>s._id===editEp.seasonId)?.seasonNumber;
     const fd = new FormData();
     fd.append("title", editEpForm.title);
     fd.append("description", editEpForm.description);
     fd.append("duration", editEpForm.duration);
     if (editEpVideo) fd.append("video", editEpVideo);
     else if (editEpVideoUrl.trim()) fd.append("videoUrl", editEpVideoUrl.trim());
+    if (editEpThumb) fd.append("thumbnail", editEpThumb);
     try {
-      await axios.patch(`${API}/movies/${selectedSeries}/seasons/${season.seasonNumber}/episodes/${editEp.ep.episodeNumber}`, fd);
+      await axios.patch(`${API}/movies/${selectedSeries}/seasons/${seasonNum}/episodes/${editEp.ep.episodeNumber}`, fd);
       await fetchSeriesDetail(selectedSeries);
-      setEditEp(null);
+      setEditEp(null); setEditEpThumb(null);
     } catch { alert("Failed to update episode"); }
     setEditEpSaving(false);
   };
@@ -231,6 +235,23 @@ export default function EmployeeDashboard() {
     <div style={{ paddingTop:90, minHeight:"100vh", background:"var(--bg-base)", color:"var(--text-primary)", fontFamily:"Outfit, sans-serif" }}>
       <div style={{ maxWidth:760, margin:"0 auto", padding:"0 20px 60px" }}>
 
+<button onClick={() => navigate(-1)} style={{
+          position:"fixed", top:88, left:32, zIndex:200,
+          width:42, height:42, borderRadius:"50%", border:"none",
+          background:"rgba(255,255,255,0.10)", backdropFilter:"blur(10px)",
+          color:"var(--text-primary)", display:"flex", alignItems:"center",
+          justifyContent:"center", cursor:"pointer",
+          transition:"background 0.2s, transform 0.15s",
+          boxShadow:"0 2px 12px rgba(0,0,0,0.2)"
+        }}
+          onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.20)"}
+          onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.10)"}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
         {/* Header */}
         <div style={{ marginBottom:28 }}>
           <h2 style={{ fontWeight:800, fontSize:26, marginBottom:4 }}>Employee Dashboard</h2>
@@ -399,6 +420,10 @@ export default function EmployeeDashboard() {
               <div style={{...inputStyle, background:"var(--bg-surface)", color:"var(--text-muted)", cursor:"not-allowed" }}>🔒 {empLang}</div>
             </div>
             <div style={{ marginBottom:14 }}>
+              <label style={labelStyle}>Trailer URL (optional)</label>
+              <input style={inputStyle} placeholder="YouTube embed or direct URL" value={seriesForm.trailerUrl||""} onChange={e=>setSeriesForm({...seriesForm,trailerUrl:e.target.value})} />
+            </div>
+            <div style={{ marginBottom:14 }}>
               <label style={labelStyle}>Genres</label>
               <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
                 {genresList.map(g => (
@@ -470,7 +495,7 @@ export default function EmployeeDashboard() {
                     <label style={labelStyle}>Select Season to add episode</label>
                     <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
                       {seriesDetail.seasons.sort((a,b)=>a.seasonNumber-b.seasonNumber).map(s => (
-                        <button key={s._id} onClick={()=>setSelectedSeason(s._id)} style={{
+                        <button key={s._id} onClick={()=>setSelectedSeason(s.seasonNumber)} style={{
                           padding:"7px 18px", borderRadius:999, fontFamily:"Outfit", fontWeight:600, fontSize:13, cursor:"pointer",
                           background: selectedSeason===s._id ? "var(--accent)" : "var(--bg-elevated)",
                           color: selectedSeason===s._id ? "#fff" : "var(--text-primary)",
@@ -482,7 +507,7 @@ export default function EmployeeDashboard() {
                     {selectedSeason && (
                       <>
                         {/* Episode list */}
-                        {seriesDetail.seasons.find(s=>s._id===selectedSeason)?.episodes?.map(ep => (
+                        {seriesDetail.seasons.find(s=>s.seasonNumber===selectedSeason)?.episodes?.map(ep => (
                           <div key={ep.episodeNumber} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", background:"var(--bg-elevated)", borderRadius:8, marginBottom:6 }}>
                             <span style={{ fontSize:12, fontWeight:700, color:"var(--accent)" }}>E{ep.episodeNumber}</span>
                             <span style={{ flex:1, fontSize:13 }}>{ep.title}</span>
@@ -498,7 +523,10 @@ export default function EmployeeDashboard() {
                           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr", gap:10, marginBottom:10 }}>
                             <input style={inputStyle} placeholder="Episode title" value={epForm.title} onChange={e=>setEpForm({...epForm,title:e.target.value})} />
                             <input style={inputStyle} type="number" placeholder="Ep #" value={epForm.episodeNumber} onChange={e=>setEpForm({...epForm,episodeNumber:e.target.value})} />
-                            <input style={inputStyle} placeholder="Duration" value={epForm.duration} onChange={e=>setEpForm({...epForm,duration:e.target.value})} />
+                            <input style={inputStyle} placeholder="Duration (e.g. 45m)" value={epForm.duration} onChange={e=>setEpForm({...epForm,duration:e.target.value})} />
+                          </div>
+                          <textarea style={{...inputStyle, minHeight:60, resize:"vertical", marginBottom:10}} placeholder="Episode description (optional)" value={epForm.description} onChange={e=>setEpForm({...epForm,description:e.target.value})} />
+                          <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr", gap:10, marginBottom:10 }}>
                           </div>
                           <input type="file" accept="video/*" style={{...inputStyle, marginBottom:6}} onChange={e=>{setEpVideo(e.target.files[0]); setEpVideoUrl("");}} disabled={!!epVideoUrl} />
                           <div style={{display:"flex",alignItems:"center",gap:8,margin:"6px 0"}}>
@@ -508,6 +536,12 @@ export default function EmployeeDashboard() {
                           </div>
                           <input style={{...inputStyle,marginBottom:10}} placeholder="Paste Cloudinary video URL" value={epVideoUrl} onChange={e=>{setEpVideoUrl(e.target.value); if(e.target.value) setEpVideo(null);}} disabled={!!epVideo} />
                           {epVideoUrl && <p style={{fontSize:12,color:"#4ade80",margin:"0 0 10px"}}>✓ Using URL</p>}
+                          <div style={{marginBottom:10}}>
+                            <label style={{...labelStyle, fontSize:12}}>Thumbnail (optional)</label>
+                            <input type="file" accept="image/*" style={inputStyle}
+                              onChange={e=>setEpThumb(e.target.files[0])} />
+                            {epThumb && <p style={{fontSize:12,color:"#4ade80",marginTop:4}}>✓ {epThumb.name}</p>}
+                          </div>
                           {uploadProgress > 0 && (
                             <div style={{marginBottom:8}}>
                               <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--text-muted)",marginBottom:3}}><span>Uploading…</span><span>{uploadProgress}%</span></div>
@@ -564,6 +598,111 @@ export default function EmployeeDashboard() {
           </div>
         )}
       </div>
+
+      {/* ══ EDIT EPISODE MODAL ══ */}
+      {editEp && (
+        <div onClick={e=>e.target===e.currentTarget&&setEditEp(null)}
+          style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:"var(--bg-surface)",border:"1px solid var(--border)",borderRadius:18,padding:28,width:"100%",maxWidth:500,maxHeight:"90vh",overflowY:"auto",fontFamily:"Outfit",color:"var(--text-primary)"}}>
+            <h5 style={{fontWeight:800,marginBottom:20}}>Edit — Ep {editEp.ep.episodeNumber}: {editEp.ep.title}</h5>
+            <div style={{marginBottom:12}}>
+              <label style={labelStyle}>Title</label>
+              <input style={inputStyle} value={editEpForm.title} onChange={e=>setEditEpForm({...editEpForm,title:e.target.value})} />
+            </div>
+            <div style={{marginBottom:12}}>
+              <label style={labelStyle}>Duration</label>
+              <input style={inputStyle} placeholder="e.g. 45m" value={editEpForm.duration} onChange={e=>setEditEpForm({...editEpForm,duration:e.target.value})} />
+            </div>
+            <div style={{marginBottom:12}}>
+              <label style={labelStyle}>Description</label>
+              <textarea style={{...inputStyle,minHeight:60,resize:"vertical"}} value={editEpForm.description} onChange={e=>setEditEpForm({...editEpForm,description:e.target.value})} />
+            </div>
+            <div style={{marginBottom:12}}>
+              <label style={labelStyle}>Replace Video</label>
+              <input type="file" accept="video/*" style={inputStyle} onChange={e=>{setEditEpVideo(e.target.files[0]); setEditEpVideoUrl("");}} disabled={!!editEpVideo} />
+              <div style={{display:"flex",alignItems:"center",gap:8,margin:"6px 0"}}>
+                <hr style={{flex:1,borderColor:"var(--border)",margin:0}}/><span style={{fontSize:11,color:"var(--text-muted)",fontWeight:600}}>OR</span><hr style={{flex:1,borderColor:"var(--border)",margin:0}}/>
+              </div>
+              <input style={inputStyle} placeholder="Paste Cloudinary video URL" value={editEpVideoUrl} onChange={e=>{setEditEpVideoUrl(e.target.value); if(e.target.value) setEditEpVideo(null);}} disabled={!!editEpVideo} />
+            </div>
+            <div style={{marginBottom:20}}>
+              <label style={labelStyle}>Replace Thumbnail (optional)</label>
+              <input type="file" accept="image/*" style={inputStyle} onChange={e=>setEditEpThumb(e.target.files[0])} />
+              {editEp.ep.thumbnail && !editEpThumb && (
+                <img src={editEp.ep.thumbnail} alt="" style={{width:80,height:50,objectFit:"cover",borderRadius:6,marginTop:6}} />
+              )}
+              {editEpThumb && <p style={{fontSize:12,color:"#4ade80",marginTop:4}}>✓ {editEpThumb.name}</p>}
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={saveEditEp} disabled={editEpSaving}
+                style={{flex:1,padding:"11px 0",background:"var(--accent)",color:"#fff",border:"none",borderRadius:10,fontFamily:"Outfit",fontWeight:700,cursor:"pointer"}}>
+                {editEpSaving?"Saving…":"💾 Save"}
+              </button>
+              <button onClick={()=>{setEditEp(null);setEditEpThumb(null);}}
+                style={{flex:1,padding:"11px 0",background:"var(--bg-elevated)",color:"var(--text-primary)",border:"1px solid var(--border)",borderRadius:10,fontFamily:"Outfit",fontWeight:600,cursor:"pointer"}}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ EDIT EPISODE MODAL ══ */}
+      {editEp && (
+        <div onClick={e=>e.target===e.currentTarget&&setEditEp(null)}
+          style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:"var(--bg-surface)",border:"1px solid var(--border)",borderRadius:18,padding:28,width:"100%",maxWidth:500,maxHeight:"90vh",overflowY:"auto",fontFamily:"Outfit",color:"var(--text-primary)"}}>
+            <h5 style={{fontWeight:800,marginBottom:20}}>Edit — Ep {editEp.ep.episodeNumber}: {editEp.ep.title}</h5>
+            <div style={{marginBottom:12}}>
+              <label style={labelStyle}>Title</label>
+              <input style={inputStyle} value={editEpForm.title} onChange={e=>setEditEpForm({...editEpForm,title:e.target.value})} />
+            </div>
+            <div style={{marginBottom:12}}>
+              <label style={labelStyle}>Duration</label>
+              <input style={inputStyle} placeholder="e.g. 45m" value={editEpForm.duration} onChange={e=>setEditEpForm({...editEpForm,duration:e.target.value})} />
+            </div>
+            <div style={{marginBottom:12}}>
+              <label style={labelStyle}>Description</label>
+              <textarea style={{...inputStyle,minHeight:60,resize:"vertical"}} value={editEpForm.description} onChange={e=>setEditEpForm({...editEpForm,description:e.target.value})} />
+            </div>
+            <div style={{marginBottom:12}}>
+              <label style={labelStyle}>Replace Video</label>
+              <input type="file" accept="video/*" style={inputStyle}
+                onChange={e=>{setEditEpVideo(e.target.files[0]); setEditEpVideoUrl("");}}
+                disabled={!!editEpVideo} />
+              <div style={{display:"flex",alignItems:"center",gap:8,margin:"6px 0"}}>
+                <hr style={{flex:1,borderColor:"var(--border)",margin:0}}/>
+                <span style={{fontSize:11,color:"var(--text-muted)",fontWeight:600}}>OR</span>
+                <hr style={{flex:1,borderColor:"var(--border)",margin:0}}/>
+              </div>
+              <input style={inputStyle} placeholder="Paste Cloudinary video URL"
+                value={editEpVideoUrl}
+                onChange={e=>{setEditEpVideoUrl(e.target.value); if(e.target.value) setEditEpVideo(null);}}
+                disabled={!!editEpVideo} />
+            </div>
+            <div style={{marginBottom:20}}>
+              <label style={labelStyle}>Replace Thumbnail (optional)</label>
+              <input type="file" accept="image/*" style={inputStyle}
+                onChange={e=>setEditEpThumb(e.target.files[0])} />
+              {editEp.ep.thumbnail && !editEpThumb && (
+                <img src={editEp.ep.thumbnail} alt=""
+                  style={{width:80,height:50,objectFit:"cover",borderRadius:6,marginTop:6}} />
+              )}
+              {editEpThumb && <p style={{fontSize:12,color:"#4ade80",marginTop:4}}>✓ {editEpThumb.name}</p>}
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={saveEditEp} disabled={editEpSaving}
+                style={{flex:1,padding:"11px 0",background:"var(--accent)",color:"#fff",border:"none",borderRadius:10,fontFamily:"Outfit",fontWeight:700,cursor:"pointer"}}>
+                {editEpSaving ? "Saving…" : "💾 Save Changes"}
+              </button>
+              <button onClick={()=>{setEditEp(null); setEditEpThumb(null);}}
+                style={{flex:1,padding:"11px 0",background:"var(--bg-elevated)",color:"var(--text-primary)",border:"1px solid var(--border)",borderRadius:10,fontFamily:"Outfit",fontWeight:600,cursor:"pointer"}}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ══ EDIT MODAL ══ */}
       {editTarget && (

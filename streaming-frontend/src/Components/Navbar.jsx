@@ -260,9 +260,11 @@ function Navbar() {
                     {activeProfile && <li><span className="dropdown-item disabled" style={{fontSize:12,opacity:0.6}}>Profile: {activeProfile.name}</span></li>}
                     <li><Link className="dropdown-item" to="/profiles"> Switch Profile</Link></li>
                     <li><Link className="dropdown-item" to="/profile"> My Account</Link></li>
-                    <li><Link className="dropdown-item" to="/subscription">
-                      {user?.subscription?.status === "active" ? " Subscription" : " Subscribe"}
-                    </Link></li>
+                    {!isAdmin && !isEmployee && (
+                      <li><Link className="dropdown-item" to="/subscription">
+                        {user?.subscription?.status === "active" ? " Subscription" : " Subscribe"}
+                      </Link></li>
+                    )}
                     <li><hr className="dropdown-divider" style={{ borderColor: "var(--border)" }} /></li>
 
                     {/* Admin links */}

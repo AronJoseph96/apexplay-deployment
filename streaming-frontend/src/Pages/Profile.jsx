@@ -120,6 +120,23 @@ export default function Profile() {
       <div style={{ minHeight: "100vh", background: "var(--bg-base)", paddingTop: 80, fontFamily: "Outfit, sans-serif", color: "var(--text-primary)" }}>
         <div style={{ maxWidth: 700, margin: "0 auto", padding: "32px 20px 80px" }}>
 
+          {/* ── BACK BUTTON ── */}
+          <button onClick={() => navigate("/")} style={{
+            width: 42, height: 42, borderRadius: "50%", border: "none",
+            background: "rgba(255,255,255,0.10)", backdropFilter: "blur(10px)",
+            color: "var(--text-primary)", display: "flex", alignItems: "center",
+            justifyContent: "center", cursor: "pointer", marginBottom: 24,
+            transition: "background 0.2s, transform 0.15s",
+            WebkitBackdropFilter: "blur(10px)",
+          }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.20)"; e.currentTarget.style.transform = "scale(1.08)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.10)"; e.currentTarget.style.transform = "scale(1)"; }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+
           {/* ── PROFILE HEADER ── */}
           <div style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 36, flexWrap: "wrap" }}>
             {/* Avatar */}
