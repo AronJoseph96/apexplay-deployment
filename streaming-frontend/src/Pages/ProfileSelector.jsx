@@ -17,6 +17,7 @@ export default function ProfileSelector() {
   const [showManage,   setShowManage]   = useState(false);
   const [showAdd,      setShowAdd]      = useState(false);
   const [editTarget,   setEditTarget]   = useState(null);
+  const [countdown,    setCountdown]    = useState("");
   const pinRef0 = useRef();
   const pinRef1 = useRef();
   const pinRef2 = useRef();
@@ -55,6 +56,32 @@ export default function ProfileSelector() {
     } catch { setProfiles([]); }
   };
 
+  // ── Live countdown ticker — only active when a kids profile is time-locked ──
+  useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const hasLocked = profiles.some(p =>
+      p.isKids && p.screenTimeLimit &&
+      p.screenTimeDate === today &&
+      p.screenTimeUsed >= p.screenTimeLimit
+    );
+    if (!hasLocked) { setCountdown(""); return; }
+    const tick = () => {
+      const now      = new Date();
+      const midnight = new Date();
+      midnight.setHours(24, 0, 0, 0);
+      const diff = midnight - now;
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setCountdown(
+        `${String(h).padStart(2,"0")}h ${String(m).padStart(2,"0")}m ${String(s).padStart(2,"0")}s`
+      );
+    };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [profiles]);
+
   // ── Select profile ──
   const selectProfile = (profile) => {
     // Check screen time limit
@@ -62,8 +89,7 @@ export default function ProfileSelector() {
       const today = new Date().toISOString().slice(0, 10);
       if (profile.screenTimeDate === today &&
           profile.screenTimeUsed >= profile.screenTimeLimit) {
-        alert(`⏱ Screen time limit reached for ${profile.name}. Daily limit: ${profile.screenTimeLimit} mins.`);
-        return;
+        return; // silently blocked — countdown shown on the card already
       }
     }
     // Check PIN
@@ -292,7 +318,15 @@ export default function ProfileSelector() {
               </div>
               <span style={{ color:"var(--text-primary)", fontWeight:600, fontSize:14 }}>{p.name}</span>
 
-              {timeLocked && <span style={{ fontSize:11, color:"#f87171" }}>Time limit reached</span>}
+              {timeLocked && (
+                <div style={{ textAlign:"center", lineHeight:1.4 }}>
+                  <span style={{ fontSize:11, color:"#f87171", display:"block" }}>Time limit reached</span>
+                  <span style={{ fontSize:14, fontWeight:700, color:"var(--accent)", fontVariantNumeric:"tabular-nums", letterSpacing:1 }}>
+                    {countdown}
+                  </span>
+                  <span style={{ fontSize:10, color:"var(--text-muted)", display:"block" }}>until reset</span>
+                </div>
+              )}
             </div>
           );
         })}
@@ -372,7 +406,7 @@ export default function ProfileSelector() {
             {/* Name */}
             <div style={{ marginBottom:12 }}>
               <label style={lbl}>Profile Name</label>
-              <input style={inp} value={formName} onChange={e=>setFormName(e.target.value)} placeholder="e.g. Name" />
+              <input style={inp} value={formName} onChange={e=>setFormName(e.target.value)} placeholder="e.g. Kids, Dad, Mom" />
             </div>
 
             {/* Kids toggle */}

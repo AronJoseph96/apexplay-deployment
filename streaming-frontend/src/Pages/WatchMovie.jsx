@@ -18,25 +18,27 @@ export default function WatchMovie() {
   const seasonParam = Number(searchParams.get("season")) || null;
   const epParam     = Number(searchParams.get("ep"))     || null;
 
-  const [content,  setContent]  = useState(null);
-  const [videoUrl, setVideoUrl] = useState("");
-  const [title,    setTitle]    = useState("");
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState("");
+  const [content,   setContent]   = useState(null);
+  const [videoUrl,  setVideoUrl]  = useState("");
+  const [title,     setTitle]     = useState("");
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState("");
+  const [countdown, setCountdown] = useState("");
 
   const videoRef    = useRef();
   const { user, activeProfile } = useAuth();
   const continueKey = (user && activeProfile) ? `apexplay_continue_${user._id}_${activeProfile._id}` : null;
-  // unique key per movie/episode for resume
-  const progressKey = user
-    ? `apexplay_progress_${user._id}_${id}${seasonParam ? `_s${seasonParam}e${epParam}` : ""}`
+  // progressKey includes profileId so each profile has its own resume position
+  const progressKey = (user && activeProfile)
+    ? `apexplay_progress_${user._id}_${activeProfile._id}_${id}${seasonParam ? `_s${seasonParam}e${epParam}` : ""}`
     : null;
 
   /* ── fetch content ── */
   useEffect(() => {
-    setLoading(true); setError("");
-    axios.get(`${API}/movies/${id}`)
-      .then(({ data }) => {
+    const load = async () => {
+      setLoading(true); setError("");
+      try {
+        const { data } = await axios.get(`${API}/movies/${id}`);
         setContent(data);
 
         // ── Subscription check ──
@@ -62,6 +64,23 @@ export default function WatchMovie() {
           }
         }
 
+        // ── Screen time ENTRY GUARD (kids only) ──
+        // Always fetch fresh data from server — context profile is stale
+        if (activeProfile?.isKids && activeProfile?.screenTimeLimit && user) {
+          const r = await fetch(`${API}/users/${user._id}/profiles`);
+          const all = await r.json();
+          const fresh = Array.isArray(all) ? all.find(p => p._id === activeProfile._id) : null;
+          if (fresh) {
+            const today = new Date().toISOString().slice(0, 10);
+            const used  = fresh.screenTimeDate === today ? (fresh.screenTimeUsed || 0) : 0;
+            if (used >= fresh.screenTimeLimit) {
+              setError("SCREEN_TIME_LIMIT");
+              setLoading(false);
+              return;
+            }
+          }
+        }
+
         if (data.category === "Series" && seasonParam && epParam) {
           const season  = data.seasons?.find(s => s.seasonNumber === seasonParam);
           const episode = season?.episodes?.find(e => e.episodeNumber === epParam);
@@ -72,8 +91,12 @@ export default function WatchMovie() {
           setTitle(data.title);
         }
         setLoading(false);
-      })
-      .catch(() => { setError("Failed to load content."); setLoading(false); });
+      } catch {
+        setError("Failed to load content.");
+        setLoading(false);
+      }
+    };
+    load();
   }, [id, seasonParam, epParam]);
 
   /* ── resume from saved position ── */
@@ -111,29 +134,71 @@ export default function WatchMovie() {
     };
     const interval = setInterval(save, 5000);
 
-    // Screen time — update every 5 mins
+    // Screen time — update every 1 minute for accurate enforcement
     const screenTimeInterval = setInterval(async () => {
       if (activeProfile && user && activeProfile.isKids) {
         try {
           const res = await fetch(`${API}/users/${user._id}/profiles/${activeProfile._id}/screentime`, {
             method: "PUT", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ minutesWatched: 5 })
+            body: JSON.stringify({ minutesWatched: 1 })
           });
           const data = await res.json();
           if (data.limitReached) {
-            alert(`⏱ Screen time limit reached for ${activeProfile.name}!`);
-            window.location.href = "/profiles";
+            // Pause video immediately — no alert, show blocked screen instead
+            if (videoRef.current) videoRef.current.pause();
+            setError("SCREEN_TIME_LIMIT");
           }
         } catch {}
       }
-    }, 5 * 60 * 1000); // every 5 minutes
+    }, 60 * 1000); // every 1 minute
 
     return () => { clearInterval(interval); clearInterval(screenTimeInterval); };
   }, [content, continueKey, progressKey, title, seasonParam, epParam, activeProfile, user]);
 
+  /* ── Midnight countdown — runs only when screen time is blocked ── */
+  useEffect(() => {
+    if (error !== "SCREEN_TIME_LIMIT") return;
+    const tick = () => {
+      const now      = new Date();
+      const midnight = new Date();
+      midnight.setHours(24, 0, 0, 0);
+      const diff = midnight - now;
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setCountdown(
+        `${String(h).padStart(2,"0")}h ${String(m).padStart(2,"0")}m ${String(s).padStart(2,"0")}s`
+      );
+    };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [error]);
+
   if (loading) return (
     <div style={{ height:"100vh", background:"#000", display:"flex", alignItems:"center", justifyContent:"center" }}>
       <div className="spinner-border text-danger" />
+    </div>
+  );
+
+  if (error === "SCREEN_TIME_LIMIT") return (
+    <div style={{ height:"100vh", background:"var(--bg-base)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:20, fontFamily:"Outfit", textAlign:"center", padding:24 }}>
+      <div style={{ fontSize:64 }}>⏱</div>
+      <h2 style={{ color:"var(--text-primary)", fontWeight:900, margin:0 }}>Screen Time Limit Reached</h2>
+      <p style={{ color:"var(--text-muted)", fontSize:16, maxWidth:420, margin:0 }}>
+        <strong style={{ color:"var(--accent)" }}>{activeProfile?.name}</strong> has used their full daily screen time.
+      </p>
+      <div style={{ background:"var(--bg-surface)", border:"1px solid var(--border)", borderRadius:16, padding:"20px 40px", display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+        <span style={{ fontSize:12, fontWeight:600, color:"var(--text-muted)", letterSpacing:1, textTransform:"uppercase" }}>Resets in</span>
+        <span style={{ fontSize:38, fontWeight:900, color:"var(--accent)", letterSpacing:2, fontVariantNumeric:"tabular-nums" }}>
+          {countdown}
+        </span>
+        <span style={{ fontSize:12, color:"var(--text-muted)" }}>Screen time resets every day at midnight</span>
+      </div>
+      <button onClick={() => navigate("/profiles")} className="btn btn-danger"
+        style={{ borderRadius:10, fontWeight:700, padding:"12px 28px", fontSize:15 }}>
+        ← Back to Profiles
+      </button>
     </div>
   );
 
@@ -359,7 +424,6 @@ function CustomPlayer({ videoRef, src }) {
 
       <video
         onClick={togglePlay}
-        style={{ cursor: "pointer" }}
         ref={videoRef}
         src={src}
         style={{ width:"100%", maxHeight:"calc(100vh - 56px)", display:"block" }}

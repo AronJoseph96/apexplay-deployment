@@ -166,7 +166,9 @@ export default function Home() {
                         </div>
                       )}
                     </div>
-                    <p className="card-title-text mt-2 mb-0">{item.title}</p>
+                    <p className="card-title-text mt-2 mb-0" style={{
+                      whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", width:150
+                    }}>{item.title}</p>
                     {item.season && <p style={{ fontSize:11, color:"var(--text-muted)", margin:0 }}>S{item.season} E{item.ep}</p>}
                   </div>
                 ))}
@@ -181,7 +183,7 @@ export default function Home() {
             <div className="container">
               <div style={{ display:"flex", alignItems:"baseline", gap:10, marginBottom:16 }}>
                 <h4 className="home-section-title" style={{ margin:0 }}>
-                   Recommended For You
+                  ✨ Recommended For You
                 </h4>
                 {recGenres.length > 0 && (
                   <span style={{ fontSize:12, color:"var(--text-muted)", fontFamily:"Outfit" }}>
