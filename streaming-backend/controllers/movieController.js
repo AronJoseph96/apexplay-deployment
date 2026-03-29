@@ -18,9 +18,11 @@ exports.getAllMovies = async (req, res) => {
     const filter = {};
     if (category) filter.category = category;
     if (q) {
-      // Fuzzy: each character separated by .* so 'conju' matches 'Conjuring'
-      const fuzzy = q.split("").join(".*");
-      filter.title = { $regex: fuzzy, $options: "i" };
+      // Substring match: "dea" only matches titles containing "dea" together
+      // e.g. "Deadpool", "Evil Dead", "High School of the Dead"
+      // NOT "Devil May Cry" (d...e...a scattered across words)
+      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.title = { $regex: escaped, $options: "i" };
     }
     if (genres)   filter.genres = { $in: genres.split(",") };
     if (lang)     filter.language = { $regex: new RegExp(lang, "i") };

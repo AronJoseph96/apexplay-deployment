@@ -42,8 +42,7 @@ function Navbar() {
     searchTimer.current = setTimeout(async () => {
       setLoadingSugg(true);
       try {
-        const fuzzy = q.trim().split("").join(".*");
-        const res   = await fetch(`http://localhost:5000/movies?q=${encodeURIComponent(q.trim())}`);
+        const res = await fetch(`http://localhost:5000/movies?q=${encodeURIComponent(q.trim())}`);
         const data  = await res.json();
         setSuggestions(Array.isArray(data) ? data.slice(0, 6) : []);
         setShowDropdown(true);
