@@ -390,7 +390,7 @@ function AddEpisodesTab() {
             </div>
             <div style={{display:"flex",gap:8,marginTop:20}}>
               <button onClick={saveEditEp} disabled={editEpSaving} style={{flex:1,padding:"11px 0",background:"var(--accent)",color:"#fff",border:"none",borderRadius:10,fontFamily:"Outfit",fontWeight:700,cursor:"pointer"}}>
-                {editEpSaving ? "Saving…" : "💾 Save Changes"}
+                {editEpSaving ? "Saving…" : " Save Changes"}
               </button>
               <button onClick={()=>setEditEp(null)} style={{flex:1,padding:"11px 0",background:"var(--bg-elevated)",color:"var(--text-primary)",border:"1px solid var(--border)",borderRadius:10,fontFamily:"Outfit",fontWeight:600,cursor:"pointer"}}>Cancel</button>
             </div>
@@ -411,6 +411,8 @@ function ManageTab({ genresList, languages }) {
   const [editGenres,setEG]       = useState([]);
   const [editPoster,setEP]       = useState(null);
   const [editBanner,setEB]       = useState(null);
+  const [editVideo,setEditVideo] = useState(null);
+  const [editVideoUrl,setEditVideoUrl] = useState("");
   const [saving,setSaving]       = useState(false);
   const [msg,setMsg]             = useState("");
 
@@ -427,7 +429,7 @@ function ManageTab({ genresList, languages }) {
   const openEdit = m => {
     setEdit(m);
     setEF({title:m.title,description:m.description||"",releaseYear:m.releaseYear||"",duration:m.duration||"",rating:m.rating||"",ageRating:m.ageRating||"U",language:m.language||"",trailerUrl:m.trailerUrl||""});
-    setEG(m.genres||[]); setEP(null); setEB(null); setMsg("");
+    setEG(m.genres||[]); setEP(null); setEB(null); setEditVideo(null); setEditVideoUrl(""); setMsg("");
   };
 
   const handleSave = async () => {
@@ -437,6 +439,8 @@ function ManageTab({ genresList, languages }) {
     fd.append("genres",JSON.stringify(editGenres));
     if(editPoster) fd.append("poster",editPoster);
     if(editBanner) fd.append("banner",editBanner);
+    if(editVideo) fd.append("video",editVideo);
+    else if(editVideoUrl.trim()) fd.append("videoUrl",editVideoUrl.trim());
     try {
       const res = await axios.patch(`${API}/movies/${editTarget._id}`,fd);
       setItems(p=>p.map(m=>m._id===editTarget._id?res.data.movie:m));
@@ -525,6 +529,21 @@ function ManageTab({ genresList, languages }) {
                   <img src={editTarget.banner} alt="" style={{width:80,height:40,objectFit:"cover",borderRadius:6}} />
                   <input type="file" accept="image/*" className="form-control" onChange={e=>setEB(e.target.files[0])} />
                 </div>
+              </div>
+              <div className="col-12">
+                <label className="form-label">Replace Video (optional)</label>
+                <input type="file" accept="video/*" className="form-control"
+                  onChange={e=>setEditVideo(e.target.files[0])} disabled={!!editVideoUrl} />
+                {editVideo && <small style={{color:"var(--text-muted)",marginTop:4,display:"block"}}>✓ {editVideo.name}</small>}
+                <div style={{display:"flex",alignItems:"center",gap:8,margin:"8px 0"}}>
+                  <hr style={{flex:1,borderColor:"var(--border)",margin:0}}/>
+                  <span style={{fontSize:12,color:"var(--text-muted)",fontWeight:600}}>OR</span>
+                  <hr style={{flex:1,borderColor:"var(--border)",margin:0}}/>
+                </div>
+                <input className="form-control" placeholder="Paste Cloudinary video URL"
+                  value={editVideoUrl||""} onChange={e=>{setEditVideoUrl(e.target.value); if(e.target.value) setEditVideo(null);}}
+                  disabled={!!editVideo} />
+                {editVideoUrl && <small style={{color:"#4ade80",marginTop:4,display:"block"}}>✓ Using URL</small>}
               </div>
             </div>
             <div style={{display:"flex",gap:10}}>
@@ -682,8 +701,8 @@ function SectionsTab() {
               <div>
                 <label style={lbl}>Type</label>
                 <select style={inp} value={fType} onChange={e=>setFType(e.target.value)}>
-                  <option value="row">📋 Row (horizontal scroll)</option>
-                  <option value="hero">🎬 Hero (top slideshow, max 5)</option>
+                  <option value="row"> Row (horizontal scroll)</option>
+                  <option value="hero"> Hero (top slideshow, max 5)</option>
                 </select>
               </div>
               <div>
@@ -743,7 +762,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("upload-movie");
   const { genresList, languages } = useGenresLanguages();
-  const tabs = [{id:"upload-movie",label:"🎬 Upload Movie"},{id:"create-series",label:"📺 Create Series"},{id:"add-episodes",label:"➕ Add Episodes"},{id:"manage",label:"⚙ Manage"},{id:"sections",label:"🏠 Sections"}];
+  const tabs = [{id:"upload-movie",label:" Upload Movie"},{id:"create-series",label:" Create Series"},{id:"add-episodes",label:"➕ Add Episodes"},{id:"manage",label:"⚙ Manage"},{id:"sections",label:" Sections"}];
 
   return (
     <div style={{paddingTop:90,minHeight:"100vh",background:"var(--bg-base)",color:"var(--text-primary)"}}>

@@ -58,6 +58,10 @@ export default function EmployeeDashboard() {
   const [editTarget,  setEditTarget]  = useState(null);
   const [editForm,    setEditForm]    = useState({});
   const [editGenres,  setEditGenres]  = useState([]);
+  const [editPoster,  setEditPoster]  = useState(null);
+  const [editBanner,  setEditBanner]  = useState(null);
+  const [editVideoEmp,setEditVideoEmp]= useState(null);
+  const [editVideoUrlEmp,setEditVideoUrlEmp] = useState("");
 
   useEffect(() => {
     axios.get(`${API}/genres`).then(r => setGenresList(r.data.map(g => g.name)));
@@ -204,6 +208,7 @@ export default function EmployeeDashboard() {
     setEditTarget(item);
     setEditForm({ title:item.title, description:item.description, releaseYear:item.releaseYear, duration:item.duration, rating:item.rating, trailerUrl:item.trailerUrl||"" });
     setEditGenres(item.genres||[]);
+    setEditPoster(null); setEditBanner(null); setEditVideoEmp(null); setEditVideoUrlEmp("");
   };
 
   // ══ SAVE EDIT ══
@@ -212,6 +217,10 @@ export default function EmployeeDashboard() {
     Object.entries(editForm).forEach(([k,v]) => data.append(k, v||""));
     data.append("language", empLang);
     data.append("genres",   JSON.stringify(editGenres));
+    if (editPoster) data.append("poster", editPoster);
+    if (editBanner) data.append("banner", editBanner);
+    if (editVideoEmp) data.append("video", editVideoEmp);
+    else if (editVideoUrlEmp.trim()) data.append("videoUrl", editVideoUrlEmp.trim());
     await axios.patch(`${API}/movies/${editTarget._id}`, data);
     setEditTarget(null); fetchContent();
   };
@@ -587,10 +596,10 @@ export default function EmployeeDashboard() {
                 </div>
                 <div style={{ display:"flex", gap:8 }}>
                   <button onClick={()=>openEdit(item)} style={{ background:"var(--bg-elevated)", color:"var(--text-primary)", border:"1px solid var(--border)", borderRadius:8, padding:"6px 14px", fontFamily:"Outfit", fontWeight:600, fontSize:13, cursor:"pointer" }}>
-                    ✏ Edit
+                     Edit
                   </button>
                   <button onClick={()=>handleDelete(item._id, item.title)} style={{ background:"none", color:"var(--accent)", border:"1px solid var(--accent)", borderRadius:8, padding:"6px 14px", fontFamily:"Outfit", fontWeight:600, fontSize:13, cursor:"pointer" }}>
-                    🗑
+                    Delete
                   </button>
                 </div>
               </div>
@@ -636,66 +645,9 @@ export default function EmployeeDashboard() {
             <div style={{display:"flex",gap:8}}>
               <button onClick={saveEditEp} disabled={editEpSaving}
                 style={{flex:1,padding:"11px 0",background:"var(--accent)",color:"#fff",border:"none",borderRadius:10,fontFamily:"Outfit",fontWeight:700,cursor:"pointer"}}>
-                {editEpSaving?"Saving…":"💾 Save"}
+                {editEpSaving?"Saving…":" Save"}
               </button>
               <button onClick={()=>{setEditEp(null);setEditEpThumb(null);}}
-                style={{flex:1,padding:"11px 0",background:"var(--bg-elevated)",color:"var(--text-primary)",border:"1px solid var(--border)",borderRadius:10,fontFamily:"Outfit",fontWeight:600,cursor:"pointer"}}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ══ EDIT EPISODE MODAL ══ */}
-      {editEp && (
-        <div onClick={e=>e.target===e.currentTarget&&setEditEp(null)}
-          style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"var(--bg-surface)",border:"1px solid var(--border)",borderRadius:18,padding:28,width:"100%",maxWidth:500,maxHeight:"90vh",overflowY:"auto",fontFamily:"Outfit",color:"var(--text-primary)"}}>
-            <h5 style={{fontWeight:800,marginBottom:20}}>Edit — Ep {editEp.ep.episodeNumber}: {editEp.ep.title}</h5>
-            <div style={{marginBottom:12}}>
-              <label style={labelStyle}>Title</label>
-              <input style={inputStyle} value={editEpForm.title} onChange={e=>setEditEpForm({...editEpForm,title:e.target.value})} />
-            </div>
-            <div style={{marginBottom:12}}>
-              <label style={labelStyle}>Duration</label>
-              <input style={inputStyle} placeholder="e.g. 45m" value={editEpForm.duration} onChange={e=>setEditEpForm({...editEpForm,duration:e.target.value})} />
-            </div>
-            <div style={{marginBottom:12}}>
-              <label style={labelStyle}>Description</label>
-              <textarea style={{...inputStyle,minHeight:60,resize:"vertical"}} value={editEpForm.description} onChange={e=>setEditEpForm({...editEpForm,description:e.target.value})} />
-            </div>
-            <div style={{marginBottom:12}}>
-              <label style={labelStyle}>Replace Video</label>
-              <input type="file" accept="video/*" style={inputStyle}
-                onChange={e=>{setEditEpVideo(e.target.files[0]); setEditEpVideoUrl("");}}
-                disabled={!!editEpVideo} />
-              <div style={{display:"flex",alignItems:"center",gap:8,margin:"6px 0"}}>
-                <hr style={{flex:1,borderColor:"var(--border)",margin:0}}/>
-                <span style={{fontSize:11,color:"var(--text-muted)",fontWeight:600}}>OR</span>
-                <hr style={{flex:1,borderColor:"var(--border)",margin:0}}/>
-              </div>
-              <input style={inputStyle} placeholder="Paste Cloudinary video URL"
-                value={editEpVideoUrl}
-                onChange={e=>{setEditEpVideoUrl(e.target.value); if(e.target.value) setEditEpVideo(null);}}
-                disabled={!!editEpVideo} />
-            </div>
-            <div style={{marginBottom:20}}>
-              <label style={labelStyle}>Replace Thumbnail (optional)</label>
-              <input type="file" accept="image/*" style={inputStyle}
-                onChange={e=>setEditEpThumb(e.target.files[0])} />
-              {editEp.ep.thumbnail && !editEpThumb && (
-                <img src={editEp.ep.thumbnail} alt=""
-                  style={{width:80,height:50,objectFit:"cover",borderRadius:6,marginTop:6}} />
-              )}
-              {editEpThumb && <p style={{fontSize:12,color:"#4ade80",marginTop:4}}>✓ {editEpThumb.name}</p>}
-            </div>
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={saveEditEp} disabled={editEpSaving}
-                style={{flex:1,padding:"11px 0",background:"var(--accent)",color:"#fff",border:"none",borderRadius:10,fontFamily:"Outfit",fontWeight:700,cursor:"pointer"}}>
-                {editEpSaving ? "Saving…" : "💾 Save Changes"}
-              </button>
-              <button onClick={()=>{setEditEp(null); setEditEpThumb(null);}}
                 style={{flex:1,padding:"11px 0",background:"var(--bg-elevated)",color:"var(--text-primary)",border:"1px solid var(--border)",borderRadius:10,fontFamily:"Outfit",fontWeight:600,cursor:"pointer"}}>
                 Cancel
               </button>
@@ -732,9 +684,45 @@ export default function EmployeeDashboard() {
                 ))}
               </div>
             </div>
+            {/* Poster */}
+            <div style={{ marginBottom:12 }}>
+              <label style={labelStyle}>Replace Poster</label>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                {editTarget.poster && <img src={editTarget.poster} alt="" style={{width:38,height:54,objectFit:"cover",borderRadius:6,flexShrink:0}} />}
+                <input type="file" accept="image/*" style={inputStyle} onChange={e=>setEditPoster(e.target.files[0])} />
+              </div>
+              {editPoster && <p style={{fontSize:12,color:"#4ade80",marginTop:4}}>✓ {editPoster.name}</p>}
+            </div>
+            {/* Banner */}
+            <div style={{ marginBottom:12 }}>
+              <label style={labelStyle}>Replace Banner</label>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                {editTarget.banner && <img src={editTarget.banner} alt="" style={{width:80,height:40,objectFit:"cover",borderRadius:6,flexShrink:0}} />}
+                <input type="file" accept="image/*" style={inputStyle} onChange={e=>setEditBanner(e.target.files[0])} />
+              </div>
+              {editBanner && <p style={{fontSize:12,color:"#4ade80",marginTop:4}}>✓ {editBanner.name}</p>}
+            </div>
+            {/* Video */}
+            <div style={{ marginBottom:20 }}>
+              <label style={labelStyle}>Replace Video (optional)</label>
+              <input type="file" accept="video/*" style={inputStyle}
+                onChange={e=>{setEditVideoEmp(e.target.files[0]); setEditVideoUrlEmp("");}}
+                disabled={!!editVideoEmp} />
+              {editVideoEmp && <p style={{fontSize:12,color:"var(--text-muted)",marginTop:4}}>✓ {editVideoEmp.name}</p>}
+              <div style={{display:"flex",alignItems:"center",gap:8,margin:"8px 0"}}>
+                <hr style={{flex:1,borderColor:"var(--border)",margin:0}}/>
+                <span style={{fontSize:11,color:"var(--text-muted)",fontWeight:600}}>OR</span>
+                <hr style={{flex:1,borderColor:"var(--border)",margin:0}}/>
+              </div>
+              <input style={inputStyle} placeholder="Paste Cloudinary video URL"
+                value={editVideoUrlEmp||""}
+                onChange={e=>{setEditVideoUrlEmp(e.target.value); if(e.target.value) setEditVideoEmp(null);}}
+                disabled={!!editVideoEmp} />
+              {editVideoUrlEmp && <p style={{fontSize:12,color:"#4ade80",marginTop:4}}>✓ Using URL</p>}
+            </div>
             <div style={{ display:"flex", gap:8 }}>
               <button onClick={handleEditSave} style={{ flex:1, padding:"11px 0", background:"var(--accent)", color:"#fff", border:"none", borderRadius:10, fontFamily:"Outfit", fontWeight:700, cursor:"pointer" }}>Save</button>
-              <button onClick={()=>setEditTarget(null)} style={{ flex:1, padding:"11px 0", background:"var(--bg-elevated)", color:"var(--text-primary)", border:"1px solid var(--border)", borderRadius:10, fontFamily:"Outfit", fontWeight:600, cursor:"pointer" }}>Cancel</button>
+              <button onClick={()=>{setEditTarget(null); setEditPoster(null); setEditBanner(null); setEditVideoEmp(null); setEditVideoUrlEmp("");}} style={{ flex:1, padding:"11px 0", background:"var(--bg-elevated)", color:"var(--text-primary)", border:"1px solid var(--border)", borderRadius:10, fontFamily:"Outfit", fontWeight:600, cursor:"pointer" }}>Cancel</button>
             </div>
           </div>
         </div>

@@ -95,7 +95,7 @@ export default function AdminUsers() {
 
         {/* TABS */}
         <div style={{ display:"flex", gap:4, borderBottom:"1px solid var(--border)", marginBottom:28 }}>
-          {[["users", `👤 Users (${normalUsers.length})`], ["employees", `🎬 Employees (${employees.length})`]].map(([key, label]) => (
+          {[["users", ` Users (${normalUsers.length})`], ["employees", ` Employees (${employees.length})`]].map(([key, label]) => (
             <button key={key} onClick={() => { setTab(key); setSearch(""); }} style={{
               background:"none", border:"none",
               borderBottom:`2px solid ${tab===key ? "var(--accent)" : "transparent"}`,
@@ -158,7 +158,7 @@ export default function AdminUsers() {
                   ↑ Make Employee
                 </button>
                 <button onClick={() => handleDelete(u._id, u.name)} style={{ background:"none", color:"var(--accent)", border:"1px solid var(--accent)", borderRadius:8, padding:"7px 14px", fontFamily:"Outfit", fontWeight:600, fontSize:13, cursor:"pointer" }}>
-                  🗑 Delete
+                   Delete
                 </button>
               </div>
             </div>
@@ -201,7 +201,7 @@ export default function AdminUsers() {
                   ↓ Demote
                 </button>
                 <button onClick={() => handleDelete(emp._id, emp.name)} style={{ background:"none", color:"var(--accent)", border:"1px solid var(--accent)", borderRadius:8, padding:"7px 14px", fontFamily:"Outfit", fontWeight:600, fontSize:13, cursor:"pointer" }}>
-                  🗑 Delete
+                   Delete
                 </button>
               </div>
             </div>
